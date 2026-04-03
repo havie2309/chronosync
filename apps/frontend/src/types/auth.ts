@@ -1,0 +1,1 @@
+// Auth type definitions placeholder.
