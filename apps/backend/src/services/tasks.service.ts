@@ -16,6 +16,11 @@ type CreateTaskInput = BaseTaskShape & {
   userId: string;
 };
 
+type BulkCreateTasksInput = {
+  userId: string;
+  tasks: BaseTaskShape[];
+};
+
 type UpdateTaskInput = {
   userId: string;
   taskId: string;
@@ -109,6 +114,37 @@ async function createTask(input: CreateTaskInput) {
   });
 }
 
+async function bulkCreateTasks(input: BulkCreateTasksInput) {
+  if (!input.tasks.length) {
+    throw new Error("At least one task is required");
+  }
+
+  const taskList = await getOrCreateDefaultTaskList(input.userId);
+  const normalizedTasks = input.tasks.map(normalizeTaskInput);
+
+  return prisma.$transaction(
+    normalizedTasks.map((task) =>
+      prisma.task.create({
+        data: {
+          taskListId: taskList.id,
+          title: task.title,
+          description: task.description,
+          durationMinutes: task.durationMinutes,
+          priority: task.priority,
+          deadline: task.deadline ? new Date(task.deadline) : undefined,
+          recurrence: task.recurrence,
+          preferredTimeWindow: task.preferredTimeWindow,
+          estimatedEffort: task.estimatedEffort,
+          status: task.status
+        },
+        include: {
+          taskList: true
+        }
+      })
+    )
+  );
+}
+
 async function getTasksForUser(userId: string) {
   return prisma.task.findMany({
     where: {
@@ -177,5 +213,13 @@ async function deleteTask(userId: string, taskId: string) {
   return { success: true };
 }
 
-export { createTask, deleteTask, getOrCreateDefaultTaskList, getTasksForUser, normalizeTaskInput, updateTask };
-export type { CreateTaskInput, NormalizedTaskInput, UpdateTaskInput };
+export {
+  bulkCreateTasks,
+  createTask,
+  deleteTask,
+  getOrCreateDefaultTaskList,
+  getTasksForUser,
+  normalizeTaskInput,
+  updateTask
+};
+export type { BaseTaskShape, BulkCreateTasksInput, CreateTaskInput, NormalizedTaskInput, UpdateTaskInput };

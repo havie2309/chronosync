@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { parseGoalsToTasks } from "../services/parse.service.js";
-import { createTask, deleteTask, getTasksForUser, updateTask } from "../services/tasks.service.js";
+import { bulkCreateTasks, createTask, deleteTask, getTasksForUser, updateTask, type BaseTaskShape } from "../services/tasks.service.js";
 
 async function createTaskHandler(req: Request, res: Response) {
   if (!req.user) {
@@ -49,6 +49,27 @@ async function createTaskHandler(req: Request, res: Response) {
   });
 
   return res.status(201).json({ task });
+}
+
+async function bulkCreateTasksHandler(req: Request, res: Response) {
+  if (!req.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const { tasks } = req.body as { tasks?: BaseTaskShape[] };
+
+  if (!Array.isArray(tasks) || tasks.length === 0) {
+    return res.status(400).json({
+      error: "tasks must be a non-empty array"
+    });
+  }
+
+  const createdTasks = await bulkCreateTasks({
+    userId: req.user.id,
+    tasks
+  });
+
+  return res.status(201).json({ tasks: createdTasks });
 }
 
 async function parseTasksHandler(req: Request, res: Response) {
@@ -110,4 +131,11 @@ async function deleteTaskHandler(req: Request, res: Response) {
   return res.status(200).json(result);
 }
 
-export { createTaskHandler, deleteTaskHandler, getTasksHandler, parseTasksHandler, updateTaskHandler };
+export {
+  bulkCreateTasksHandler,
+  createTaskHandler,
+  deleteTaskHandler,
+  getTasksHandler,
+  parseTasksHandler,
+  updateTaskHandler
+};

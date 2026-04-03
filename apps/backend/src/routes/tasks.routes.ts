@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  bulkCreateTasksHandler,
   createTaskHandler,
   deleteTaskHandler,
   getTasksHandler,
@@ -13,6 +14,7 @@ const tasksRouter = Router();
 tasksRouter.use(requireAuth);
 
 tasksRouter.post("/parse", parseTasksHandler);
+tasksRouter.post("/bulk", bulkCreateTasksHandler);
 tasksRouter.post("/", createTaskHandler);
 tasksRouter.get("/", getTasksHandler);
 tasksRouter.patch("/:id", updateTaskHandler);
