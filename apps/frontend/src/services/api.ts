@@ -26,6 +26,17 @@ type SaveTasksResponse = {
   >;
 };
 
+type SavedTask = ParsedTask & {
+  id: string;
+  taskListId: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type GetTasksResponse = {
+  tasks: SavedTask[];
+};
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 async function parseTasks(text: string, user: AuthUser): Promise<ParseTasksResponse> {
@@ -67,5 +78,20 @@ async function saveTasks(tasks: ParsedTask[], user: AuthUser): Promise<SaveTasks
   return (await response.json()) as SaveTasksResponse;
 }
 
-export { parseTasks, saveTasks };
-export type { ParseTasksResponse, ParsedTask, SaveTasksResponse };
+async function getTasks(user: AuthUser): Promise<GetTasksResponse> {
+  const response = await fetch(`${API_URL}/api/tasks`, {
+    method: "GET",
+    headers: {
+      "x-user-email": user.email
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch tasks");
+  }
+
+  return (await response.json()) as GetTasksResponse;
+}
+
+export { getTasks, parseTasks, saveTasks };
+export type { GetTasksResponse, ParsedTask, SaveTasksResponse, SavedTask };
