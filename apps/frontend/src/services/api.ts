@@ -59,6 +59,12 @@ type GenerateScheduleResponse = {
   timeBlocks: ScheduleTimeBlock[];
 };
 
+type ResetScheduleResponse = {
+  weekStart: string;
+  weekEnd: string;
+  deletedCount: number;
+};
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 async function parseTasks(text: string, user: AuthUser): Promise<ParseTasksResponse> {
@@ -153,12 +159,30 @@ async function generateSchedule(user: AuthUser, weekStart?: string): Promise<Gen
   return (await response.json()) as GenerateScheduleResponse;
 }
 
-export { generateSchedule, getTasks, getWeekSchedule, parseTasks, saveTasks };
+async function resetSchedule(user: AuthUser, weekStart?: string): Promise<ResetScheduleResponse> {
+  const response = await fetch(`${API_URL}/api/schedule/reset`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-user-email": user.email
+    },
+    body: JSON.stringify(weekStart ? { weekStart } : {})
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to reset schedule");
+  }
+
+  return (await response.json()) as ResetScheduleResponse;
+}
+
+export { generateSchedule, getTasks, getWeekSchedule, parseTasks, resetSchedule, saveTasks };
 export type {
   GenerateScheduleResponse,
   GetTasksResponse,
   GetWeekScheduleResponse,
   ParsedTask,
+  ResetScheduleResponse,
   SaveTasksResponse,
   SavedTask,
   ScheduleTimeBlock

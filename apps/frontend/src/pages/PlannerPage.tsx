@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { generateSchedule, getWeekSchedule, type ScheduleTimeBlock } from "../services/api";
+import { generateSchedule, getWeekSchedule, resetSchedule, type ScheduleTimeBlock } from "../services/api";
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString([], {
@@ -19,6 +19,7 @@ function PlannerPage() {
   const [weekEnd, setWeekEnd] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -69,6 +70,51 @@ function PlannerPage() {
     }
   }
 
+  async function handleResetSchedule() {
+    if (!user) {
+      setError("You must be signed in to reset the schedule.");
+      return;
+    }
+
+    setIsResetting(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      const result = await resetSchedule(user);
+      setSuccessMessage(`Reset ${result.deletedCount} scheduled block(s) for this week.`);
+      await loadSchedule(user);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Failed to reset schedule");
+    } finally {
+      setIsResetting(false);
+    }
+  }
+
+  async function handleResetAndRegenerate() {
+    if (!user) {
+      setError("You must be signed in to regenerate the schedule.");
+      return;
+    }
+
+    setIsGenerating(true);
+    setIsResetting(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      await resetSchedule(user);
+      const result = await generateSchedule(user);
+      setSuccessMessage(`Reset and generated ${result.timeBlocks.length} time block(s).`);
+      await loadSchedule(user);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Failed to reset and regenerate schedule");
+    } finally {
+      setIsGenerating(false);
+      setIsResetting(false);
+    }
+  }
+
   return (
     <section>
       <p style={{ margin: 0, color: "#486581", fontWeight: 700 }}>Planner</p>
@@ -80,23 +126,39 @@ function PlannerPage() {
       <div style={{ display: "flex", gap: "12px", marginTop: "18px", alignItems: "center" }}>
         <button
           onClick={handleGenerateSchedule}
-          disabled={isGenerating}
+          disabled={isGenerating || isResetting}
           style={{
             border: "none",
             borderRadius: "12px",
             padding: "12px 18px",
-            background: isGenerating ? "#9fb3c8" : "#102a43",
+            background: isGenerating || isResetting ? "#9fb3c8" : "#102a43",
             color: "#fff",
             fontWeight: 700,
-            cursor: isGenerating ? "default" : "pointer"
+            cursor: isGenerating || isResetting ? "default" : "pointer"
           }}
         >
           {isGenerating ? "Generating..." : "Generate Schedule"}
         </button>
 
         <button
-          onClick={() => void loadSchedule()}
-          disabled={isLoading}
+          onClick={handleResetSchedule}
+          disabled={isResetting || isGenerating}
+          style={{
+            border: "1px solid #fca5a5",
+            borderRadius: "12px",
+            padding: "12px 18px",
+            background: "#fff5f5",
+            color: "#b91c1c",
+            fontWeight: 700,
+            cursor: isResetting || isGenerating ? "default" : "pointer"
+          }}
+        >
+          {isResetting && !isGenerating ? "Resetting..." : "Reset Week"}
+        </button>
+
+        <button
+          onClick={handleResetAndRegenerate}
+          disabled={isGenerating || isResetting}
           style={{
             border: "1px solid #bcccdc",
             borderRadius: "12px",
@@ -104,7 +166,23 @@ function PlannerPage() {
             background: "#fff",
             color: "#102a43",
             fontWeight: 700,
-            cursor: isLoading ? "default" : "pointer"
+            cursor: isGenerating || isResetting ? "default" : "pointer"
+          }}
+        >
+          {isGenerating && isResetting ? "Resetting + Generating..." : "Reset & Regenerate"}
+        </button>
+
+        <button
+          onClick={() => void loadSchedule()}
+          disabled={isLoading || isGenerating || isResetting}
+          style={{
+            border: "1px solid #bcccdc",
+            borderRadius: "12px",
+            padding: "12px 18px",
+            background: "#fff",
+            color: "#102a43",
+            fontWeight: 700,
+            cursor: isLoading || isGenerating || isResetting ? "default" : "pointer"
           }}
         >
           Refresh

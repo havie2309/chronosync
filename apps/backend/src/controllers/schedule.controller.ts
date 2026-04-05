@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { generateSchedule, getWeekSchedule } from "../services/schedule.service.js";
+import { generateSchedule, getWeekSchedule, resetSchedule } from "../services/schedule.service.js";
 
 async function generateScheduleHandler(req: Request, res: Response) {
   if (!req.user) {
@@ -33,4 +33,21 @@ async function getWeekScheduleHandler(req: Request, res: Response) {
   return res.status(200).json(result);
 }
 
-export { generateScheduleHandler, getWeekScheduleHandler };
+async function resetScheduleHandler(req: Request, res: Response) {
+  if (!req.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const { weekStart } = req.body as {
+    weekStart?: string;
+  };
+
+  const result = await resetSchedule({
+    userId: req.user.id,
+    weekStart
+  });
+
+  return res.status(200).json(result);
+}
+
+export { generateScheduleHandler, getWeekScheduleHandler, resetScheduleHandler };

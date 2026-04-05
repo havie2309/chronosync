@@ -10,6 +10,11 @@ type GetWeekScheduleInput = {
   weekStart?: string;
 };
 
+type ResetScheduleInput = {
+  userId: string;
+  weekStart?: string;
+};
+
 type ScheduledTask = {
   taskId: string;
   title: string;
@@ -262,5 +267,63 @@ async function getWeekSchedule(input: GetWeekScheduleInput) {
   };
 }
 
-export { generateSchedule, getWeekSchedule };
-export type { GenerateScheduleInput, GetWeekScheduleInput };
+async function resetSchedule(input: ResetScheduleInput) {
+  const weekStart = resolveWeekStart(input.weekStart);
+  const weekEnd = getWeekEnd(weekStart);
+
+  return prisma.$transaction(async (tx) => {
+    const existingBlocks = await tx.timeBlock.findMany({
+      where: {
+        userId: input.userId,
+        type: "task",
+        status: "scheduled",
+        startTime: {
+          gte: weekStart,
+          lt: weekEnd
+        }
+      },
+      select: {
+        id: true,
+        taskId: true
+      }
+    });
+
+    const taskIds = existingBlocks
+      .map((block) => block.taskId)
+      .filter((taskId): taskId is string => Boolean(taskId));
+
+    if (taskIds.length > 0) {
+      await tx.task.updateMany({
+        where: {
+          id: {
+            in: taskIds
+          }
+        },
+        data: {
+          status: "pending"
+        }
+      });
+    }
+
+    const deleted = await tx.timeBlock.deleteMany({
+      where: {
+        userId: input.userId,
+        type: "task",
+        status: "scheduled",
+        startTime: {
+          gte: weekStart,
+          lt: weekEnd
+        }
+      }
+    });
+
+    return {
+      weekStart,
+      weekEnd,
+      deletedCount: deleted.count
+    };
+  });
+}
+
+export { generateSchedule, getWeekSchedule, resetSchedule };
+export type { GenerateScheduleInput, GetWeekScheduleInput, ResetScheduleInput };
