@@ -65,6 +65,10 @@ type ResetScheduleResponse = {
   deletedCount: number;
 };
 
+type DeleteTaskResponse = {
+  success: boolean;
+};
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 async function parseTasks(text: string, user: AuthUser): Promise<ParseTasksResponse> {
@@ -176,8 +180,24 @@ async function resetSchedule(user: AuthUser, weekStart?: string): Promise<ResetS
   return (await response.json()) as ResetScheduleResponse;
 }
 
-export { generateSchedule, getTasks, getWeekSchedule, parseTasks, resetSchedule, saveTasks };
+async function deleteTask(taskId: string, user: AuthUser): Promise<DeleteTaskResponse> {
+  const response = await fetch(`${API_URL}/api/tasks/${taskId}`, {
+    method: "DELETE",
+    headers: {
+      "x-user-email": user.email
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete task");
+  }
+
+  return (await response.json()) as DeleteTaskResponse;
+}
+
+export { deleteTask, generateSchedule, getTasks, getWeekSchedule, parseTasks, resetSchedule, saveTasks };
 export type {
+  DeleteTaskResponse,
   GenerateScheduleResponse,
   GetTasksResponse,
   GetWeekScheduleResponse,

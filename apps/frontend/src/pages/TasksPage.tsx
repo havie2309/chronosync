@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { getTasks, type SavedTask } from "../services/api";
+import { deleteTask, getTasks, type SavedTask } from "../services/api";
 
 function getStatusBadgeStyle(status: string) {
   if (status === "scheduled") {
@@ -27,47 +27,54 @@ function TasksPage() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<SavedTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingTaskId, setDeletingTaskId] = useState("");
   const [error, setError] = useState("");
 
   const scheduledTasks = tasks.filter((task) => task.status === "scheduled");
   const activeTasks = tasks.filter((task) => task.status !== "scheduled");
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadTasks() {
-      if (!user) {
-        setError("You must be signed in to view tasks.");
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      setError("");
-
-      try {
-        const result = await getTasks(user);
-
-        if (isMounted) {
-          setTasks(result.tasks);
-        }
-      } catch (nextError) {
-        if (isMounted) {
-          setError(nextError instanceof Error ? nextError.message : "Failed to fetch tasks");
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+  async function loadTasks(currentUser = user) {
+    if (!currentUser) {
+      setError("You must be signed in to view tasks.");
+      setIsLoading(false);
+      return;
     }
 
-    void loadTasks();
+    setIsLoading(true);
+    setError("");
 
-    return () => {
-      isMounted = false;
-    };
+    try {
+      const result = await getTasks(currentUser);
+      setTasks(result.tasks);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Failed to fetch tasks");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadTasks();
   }, [user]);
+
+  async function handleDeleteTask(taskId: string) {
+    if (!user) {
+      setError("You must be signed in to delete tasks.");
+      return;
+    }
+
+    setDeletingTaskId(taskId);
+    setError("");
+
+    try {
+      await deleteTask(taskId, user);
+      await loadTasks(user);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Failed to delete task");
+    } finally {
+      setDeletingTaskId("");
+    }
+  }
 
   return (
     <section>
@@ -166,6 +173,22 @@ function TasksPage() {
                   >
                     {task.status}
                   </span>
+                  <button
+                    onClick={() => void handleDeleteTask(task.id)}
+                    disabled={deletingTaskId === task.id}
+                    style={{
+                      border: "1px solid #fecaca",
+                      borderRadius: "999px",
+                      padding: "6px 10px",
+                      background: "#fff5f5",
+                      color: "#b91c1c",
+                      fontSize: "0.85rem",
+                      fontWeight: 700,
+                      cursor: deletingTaskId === task.id ? "default" : "pointer"
+                    }}
+                  >
+                    {deletingTaskId === task.id ? "Deleting..." : "Delete"}
+                  </button>
                 </div>
               </div>
 
