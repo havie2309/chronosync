@@ -110,7 +110,9 @@ function buildSchedule(tasks: Array<{ id: string; title: string; durationMinutes
 async function generateSchedule(input: GenerateScheduleInput) {
   const tasks = await prisma.task.findMany({
     where: {
-      status: "pending",
+      status: {
+        in: ["pending", "scheduled"]
+      },
       taskList: {
         userId: input.userId
       }
@@ -135,6 +137,38 @@ async function generateSchedule(input: GenerateScheduleInput) {
   const scheduledTasks = buildSchedule(sortedTasks, weekStart);
 
   const createdBlocks = await prisma.$transaction(async (tx) => {
+    const existingBlocks = await tx.timeBlock.findMany({
+      where: {
+        userId: input.userId,
+        type: "task",
+        status: "scheduled",
+        startTime: {
+          gte: weekStart,
+          lt: weekEnd
+        }
+      },
+      select: {
+        taskId: true
+      }
+    });
+
+    const existingTaskIds = existingBlocks
+      .map((block) => block.taskId)
+      .filter((taskId): taskId is string => Boolean(taskId));
+
+    if (existingTaskIds.length > 0) {
+      await tx.task.updateMany({
+        where: {
+          id: {
+            in: existingTaskIds
+          }
+        },
+        data: {
+          status: "pending"
+        }
+      });
+    }
+
     await tx.timeBlock.deleteMany({
       where: {
         userId: input.userId,
@@ -164,6 +198,21 @@ async function generateSchedule(input: GenerateScheduleInput) {
       });
 
       nextBlocks.push(createdBlock);
+    }
+
+    const nextTaskIds = scheduledTasks.map((task) => task.taskId);
+
+    if (nextTaskIds.length > 0) {
+      await tx.task.updateMany({
+        where: {
+          id: {
+            in: nextTaskIds
+          }
+        },
+        data: {
+          status: "scheduled"
+        }
+      });
     }
 
     return nextBlocks;
