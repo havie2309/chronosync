@@ -53,6 +53,12 @@ type GetWeekScheduleResponse = {
   timeBlocks: ScheduleTimeBlock[];
 };
 
+type GenerateScheduleResponse = {
+  schedulerRunId: string;
+  weekStart: string;
+  timeBlocks: ScheduleTimeBlock[];
+};
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 async function parseTasks(text: string, user: AuthUser): Promise<ParseTasksResponse> {
@@ -130,5 +136,30 @@ async function getWeekSchedule(user: AuthUser, weekStart?: string): Promise<GetW
   return (await response.json()) as GetWeekScheduleResponse;
 }
 
-export { getTasks, getWeekSchedule, parseTasks, saveTasks };
-export type { GetTasksResponse, GetWeekScheduleResponse, ParsedTask, SaveTasksResponse, SavedTask, ScheduleTimeBlock };
+async function generateSchedule(user: AuthUser, weekStart?: string): Promise<GenerateScheduleResponse> {
+  const response = await fetch(`${API_URL}/api/schedule/generate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-user-email": user.email
+    },
+    body: JSON.stringify(weekStart ? { weekStart } : {})
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to generate schedule");
+  }
+
+  return (await response.json()) as GenerateScheduleResponse;
+}
+
+export { generateSchedule, getTasks, getWeekSchedule, parseTasks, saveTasks };
+export type {
+  GenerateScheduleResponse,
+  GetTasksResponse,
+  GetWeekScheduleResponse,
+  ParsedTask,
+  SaveTasksResponse,
+  SavedTask,
+  ScheduleTimeBlock
+};

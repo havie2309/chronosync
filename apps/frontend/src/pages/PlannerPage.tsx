@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { getWeekSchedule, type ScheduleTimeBlock } from "../services/api";
+import { generateSchedule, getWeekSchedule, type ScheduleTimeBlock } from "../services/api";
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString([], {
@@ -18,46 +18,56 @@ function PlannerPage() {
   const [weekStart, setWeekStart] = useState("");
   const [weekEnd, setWeekEnd] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadSchedule() {
-      if (!user) {
-        setError("You must be signed in to view the planner.");
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      setError("");
-
-      try {
-        const result = await getWeekSchedule(user);
-
-        if (isMounted) {
-          setTimeBlocks(result.timeBlocks);
-          setWeekStart(result.weekStart);
-          setWeekEnd(result.weekEnd);
-        }
-      } catch (nextError) {
-        if (isMounted) {
-          setError(nextError instanceof Error ? nextError.message : "Failed to fetch weekly schedule");
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+  async function loadSchedule(currentUser = user) {
+    if (!currentUser) {
+      setError("You must be signed in to view the planner.");
+      setIsLoading(false);
+      return;
     }
 
-    void loadSchedule();
+    setIsLoading(true);
+    setError("");
 
-    return () => {
-      isMounted = false;
-    };
+    try {
+      const result = await getWeekSchedule(currentUser);
+      setTimeBlocks(result.timeBlocks);
+      setWeekStart(result.weekStart);
+      setWeekEnd(result.weekEnd);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Failed to fetch weekly schedule");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadSchedule();
   }, [user]);
+
+  async function handleGenerateSchedule() {
+    if (!user) {
+      setError("You must be signed in to generate a schedule.");
+      return;
+    }
+
+    setIsGenerating(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      const result = await generateSchedule(user);
+      setSuccessMessage(`Generated ${result.timeBlocks.length} time block(s).`);
+      await loadSchedule(user);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Failed to generate schedule");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   return (
     <section>
@@ -67,10 +77,59 @@ function PlannerPage() {
         This page will show scheduled time blocks from the backend and later host drag-and-drop editing with a calendar UI.
       </p>
 
+      <div style={{ display: "flex", gap: "12px", marginTop: "18px", alignItems: "center" }}>
+        <button
+          onClick={handleGenerateSchedule}
+          disabled={isGenerating}
+          style={{
+            border: "none",
+            borderRadius: "12px",
+            padding: "12px 18px",
+            background: isGenerating ? "#9fb3c8" : "#102a43",
+            color: "#fff",
+            fontWeight: 700,
+            cursor: isGenerating ? "default" : "pointer"
+          }}
+        >
+          {isGenerating ? "Generating..." : "Generate Schedule"}
+        </button>
+
+        <button
+          onClick={() => void loadSchedule()}
+          disabled={isLoading}
+          style={{
+            border: "1px solid #bcccdc",
+            borderRadius: "12px",
+            padding: "12px 18px",
+            background: "#fff",
+            color: "#102a43",
+            fontWeight: 700,
+            cursor: isLoading ? "default" : "pointer"
+          }}
+        >
+          Refresh
+        </button>
+      </div>
+
       {weekStart && weekEnd ? (
         <p style={{ marginTop: "18px", color: "#627d98" }}>
           Showing schedule from {new Date(weekStart).toLocaleDateString()} to {new Date(weekEnd).toLocaleDateString()}
         </p>
+      ) : null}
+
+      {successMessage ? (
+        <div
+          style={{
+            marginTop: "18px",
+            padding: "12px 14px",
+            borderRadius: "12px",
+            background: "#e6fffa",
+            color: "#0f766e",
+            maxWidth: "900px"
+          }}
+        >
+          {successMessage}
+        </div>
       ) : null}
 
       {isLoading ? (
