@@ -32,9 +32,11 @@ function TasksPage() {
   const [savingTaskId, setSavingTaskId] = useState("");
   const [editDraft, setEditDraft] = useState<Partial<ParsedTask>>({});
   const [error, setError] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "in_progress" | "scheduled">("all");
 
   const scheduledTasks = tasks.filter((task) => task.status === "scheduled");
   const activeTasks = tasks.filter((task) => task.status !== "scheduled");
+  const visibleTasks = statusFilter === "all" ? tasks : tasks.filter((task) => task.status === statusFilter);
 
   async function loadTasks(currentUser = user) {
     if (!currentUser) {
@@ -176,7 +178,33 @@ function TasksPage() {
             </div>
           </div>
 
-          {tasks.map((task) => (
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ color: "#486581", fontWeight: 700 }}>Filter</span>
+            {[
+              { label: "All", value: "all" },
+              { label: "Pending", value: "pending" },
+              { label: "In Progress", value: "in_progress" },
+              { label: "Scheduled", value: "scheduled" }
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setStatusFilter(option.value as "all" | "pending" | "in_progress" | "scheduled")}
+                style={{
+                  border: statusFilter === option.value ? "1px solid #102a43" : "1px solid #d9e2ec",
+                  borderRadius: "999px",
+                  padding: "8px 12px",
+                  background: statusFilter === option.value ? "#102a43" : "#fff",
+                  color: statusFilter === option.value ? "#fff" : "#486581",
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          {visibleTasks.map((task) => (
             <article
               key={task.id}
               style={{
@@ -387,6 +415,12 @@ function TasksPage() {
               )}
             </article>
           ))}
+
+          {visibleTasks.length === 0 ? (
+            <div style={{ padding: "24px", borderRadius: "18px", background: "#fff", color: "#627d98" }}>
+              No tasks match the current filter.
+            </div>
+          ) : null}
         </div>
       ) : null}
     </section>
