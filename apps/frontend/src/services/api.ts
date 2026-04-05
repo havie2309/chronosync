@@ -69,6 +69,10 @@ type DeleteTaskResponse = {
   success: boolean;
 };
 
+type UpdateTaskResponse = {
+  task: SavedTask;
+};
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 async function parseTasks(text: string, user: AuthUser): Promise<ParseTasksResponse> {
@@ -195,7 +199,24 @@ async function deleteTask(taskId: string, user: AuthUser): Promise<DeleteTaskRes
   return (await response.json()) as DeleteTaskResponse;
 }
 
-export { deleteTask, generateSchedule, getTasks, getWeekSchedule, parseTasks, resetSchedule, saveTasks };
+async function updateTask(taskId: string, updates: Partial<ParsedTask>, user: AuthUser): Promise<UpdateTaskResponse> {
+  const response = await fetch(`${API_URL}/api/tasks/${taskId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "x-user-email": user.email
+    },
+    body: JSON.stringify(updates)
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update task");
+  }
+
+  return (await response.json()) as UpdateTaskResponse;
+}
+
+export { deleteTask, generateSchedule, getTasks, getWeekSchedule, parseTasks, resetSchedule, saveTasks, updateTask };
 export type {
   DeleteTaskResponse,
   GenerateScheduleResponse,
@@ -205,5 +226,6 @@ export type {
   ResetScheduleResponse,
   SaveTasksResponse,
   SavedTask,
-  ScheduleTimeBlock
+  ScheduleTimeBlock,
+  UpdateTaskResponse
 };

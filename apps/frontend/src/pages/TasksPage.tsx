@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { deleteTask, getTasks, type SavedTask } from "../services/api";
+import { deleteTask, getTasks, updateTask, type ParsedTask, type SavedTask } from "../services/api";
 
 function getStatusBadgeStyle(status: string) {
   if (status === "scheduled") {
@@ -28,6 +28,9 @@ function TasksPage() {
   const [tasks, setTasks] = useState<SavedTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingTaskId, setDeletingTaskId] = useState("");
+  const [editingTaskId, setEditingTaskId] = useState("");
+  const [savingTaskId, setSavingTaskId] = useState("");
+  const [editDraft, setEditDraft] = useState<Partial<ParsedTask>>({});
   const [error, setError] = useState("");
 
   const scheduledTasks = tasks.filter((task) => task.status === "scheduled");
@@ -73,6 +76,48 @@ function TasksPage() {
       setError(nextError instanceof Error ? nextError.message : "Failed to delete task");
     } finally {
       setDeletingTaskId("");
+    }
+  }
+
+  function startEditing(task: SavedTask) {
+    setEditingTaskId(task.id);
+    setEditDraft({
+      title: task.title,
+      description: task.description,
+      durationMinutes: task.durationMinutes,
+      priority: task.priority,
+      deadline: task.deadline,
+      recurrence: task.recurrence,
+      preferredTimeWindow: task.preferredTimeWindow,
+      estimatedEffort: task.estimatedEffort,
+      status: task.status
+    });
+    setError("");
+  }
+
+  function cancelEditing() {
+    setEditingTaskId("");
+    setSavingTaskId("");
+    setEditDraft({});
+  }
+
+  async function handleSaveEdit(taskId: string) {
+    if (!user) {
+      setError("You must be signed in to update tasks.");
+      return;
+    }
+
+    setSavingTaskId(taskId);
+    setError("");
+
+    try {
+      await updateTask(taskId, editDraft, user);
+      cancelEditing();
+      await loadTasks(user);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Failed to update task");
+    } finally {
+      setSavingTaskId("");
     }
   }
 
@@ -143,12 +188,53 @@ function TasksPage() {
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "start" }}>
-                <div>
-                  <h3 style={{ margin: 0, color: "#102a43" }}>{task.title}</h3>
-                  <p style={{ margin: "8px 0 0", color: "#627d98" }}>
-                    Duration: {task.durationMinutes} min | Priority: {task.priority}
-                  </p>
-                </div>
+                {editingTaskId === task.id ? (
+                  <div style={{ flex: 1, display: "grid", gap: "10px" }}>
+                    <input
+                      value={editDraft.title ?? ""}
+                      onChange={(event) => setEditDraft((current) => ({ ...current, title: event.target.value }))}
+                      style={{ borderRadius: "12px", border: "1px solid #cbd2d9", padding: "10px 12px", fontSize: "1rem" }}
+                    />
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px" }}>
+                      <input
+                        type="number"
+                        min={1}
+                        value={editDraft.durationMinutes ?? ""}
+                        onChange={(event) =>
+                          setEditDraft((current) => ({ ...current, durationMinutes: Number(event.target.value) || task.durationMinutes }))
+                        }
+                        style={{ borderRadius: "12px", border: "1px solid #cbd2d9", padding: "10px 12px" }}
+                      />
+                      <select
+                        value={editDraft.priority ?? task.priority}
+                        onChange={(event) => setEditDraft((current) => ({ ...current, priority: Number(event.target.value) }))}
+                        style={{ borderRadius: "12px", border: "1px solid #cbd2d9", padding: "10px 12px" }}
+                      >
+                        <option value={1}>Priority 1</option>
+                        <option value={2}>Priority 2</option>
+                        <option value={3}>Priority 3</option>
+                        <option value={4}>Priority 4</option>
+                        <option value={5}>Priority 5</option>
+                      </select>
+                      <select
+                        value={editDraft.status ?? task.status}
+                        onChange={(event) => setEditDraft((current) => ({ ...current, status: event.target.value }))}
+                        style={{ borderRadius: "12px", border: "1px solid #cbd2d9", padding: "10px 12px" }}
+                      >
+                        <option value="pending">pending</option>
+                        <option value="in_progress">in_progress</option>
+                        <option value="scheduled">scheduled</option>
+                      </select>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <h3 style={{ margin: 0, color: "#102a43" }}>{task.title}</h3>
+                    <p style={{ margin: "8px 0 0", color: "#627d98" }}>
+                      Duration: {task.durationMinutes} min | Priority: {task.priority}
+                    </p>
+                  </div>
+                )}
                 <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                   <span
                     style={{
@@ -173,9 +259,62 @@ function TasksPage() {
                   >
                     {task.status}
                   </span>
+                  {editingTaskId === task.id ? (
+                    <>
+                      <button
+                        onClick={() => void handleSaveEdit(task.id)}
+                        disabled={savingTaskId === task.id}
+                        style={{
+                          border: "1px solid #bbf7d0",
+                          borderRadius: "999px",
+                          padding: "6px 10px",
+                          background: "#f0fdf4",
+                          color: "#166534",
+                          fontSize: "0.85rem",
+                          fontWeight: 700,
+                          cursor: savingTaskId === task.id ? "default" : "pointer"
+                        }}
+                      >
+                        {savingTaskId === task.id ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        onClick={cancelEditing}
+                        disabled={savingTaskId === task.id}
+                        style={{
+                          border: "1px solid #d9e2ec",
+                          borderRadius: "999px",
+                          padding: "6px 10px",
+                          background: "#fff",
+                          color: "#486581",
+                          fontSize: "0.85rem",
+                          fontWeight: 700,
+                          cursor: savingTaskId === task.id ? "default" : "pointer"
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => startEditing(task)}
+                      disabled={Boolean(deletingTaskId)}
+                      style={{
+                        border: "1px solid #bfdbfe",
+                        borderRadius: "999px",
+                        padding: "6px 10px",
+                        background: "#eff6ff",
+                        color: "#1d4ed8",
+                        fontSize: "0.85rem",
+                        fontWeight: 700,
+                        cursor: deletingTaskId ? "default" : "pointer"
+                      }}
+                    >
+                      Edit
+                    </button>
+                  )}
                   <button
                     onClick={() => void handleDeleteTask(task.id)}
-                    disabled={deletingTaskId === task.id}
+                    disabled={deletingTaskId === task.id || editingTaskId === task.id}
                     style={{
                       border: "1px solid #fecaca",
                       borderRadius: "999px",
@@ -192,12 +331,60 @@ function TasksPage() {
                 </div>
               </div>
 
-              <div style={{ marginTop: "14px", display: "grid", gap: "8px", color: "#486581" }}>
-                <div>Deadline: {task.deadline ?? "None"}</div>
-                <div>Recurrence: {task.recurrence ?? "None"}</div>
-                <div>Preferred window: {task.preferredTimeWindow ?? "None"}</div>
-                <div>Estimated effort: {task.estimatedEffort ?? "None"}</div>
-              </div>
+              {editingTaskId === task.id ? (
+                <div style={{ marginTop: "14px", display: "grid", gap: "10px", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+                  <input
+                    value={editDraft.deadline ?? ""}
+                    onChange={(event) => setEditDraft((current) => ({ ...current, deadline: event.target.value || null }))}
+                    placeholder="Deadline"
+                    style={{ borderRadius: "12px", border: "1px solid #cbd2d9", padding: "10px 12px" }}
+                  />
+                  <input
+                    value={editDraft.recurrence ?? ""}
+                    onChange={(event) => setEditDraft((current) => ({ ...current, recurrence: event.target.value || null }))}
+                    placeholder="Recurrence"
+                    style={{ borderRadius: "12px", border: "1px solid #cbd2d9", padding: "10px 12px" }}
+                  />
+                  <input
+                    value={editDraft.preferredTimeWindow ?? ""}
+                    onChange={(event) =>
+                      setEditDraft((current) => ({ ...current, preferredTimeWindow: event.target.value || null }))
+                    }
+                    placeholder="Preferred window"
+                    style={{ borderRadius: "12px", border: "1px solid #cbd2d9", padding: "10px 12px" }}
+                  />
+                  <input
+                    value={editDraft.estimatedEffort ?? ""}
+                    onChange={(event) =>
+                      setEditDraft((current) => ({ ...current, estimatedEffort: event.target.value || null }))
+                    }
+                    placeholder="Estimated effort"
+                    style={{ borderRadius: "12px", border: "1px solid #cbd2d9", padding: "10px 12px" }}
+                  />
+                  <textarea
+                    value={editDraft.description ?? ""}
+                    onChange={(event) =>
+                      setEditDraft((current) => ({ ...current, description: event.target.value || undefined }))
+                    }
+                    placeholder="Description"
+                    rows={3}
+                    style={{
+                      gridColumn: "1 / -1",
+                      borderRadius: "12px",
+                      border: "1px solid #cbd2d9",
+                      padding: "10px 12px",
+                      resize: "vertical"
+                    }}
+                  />
+                </div>
+              ) : (
+                <div style={{ marginTop: "14px", display: "grid", gap: "8px", color: "#486581" }}>
+                  <div>Deadline: {task.deadline ?? "None"}</div>
+                  <div>Recurrence: {task.recurrence ?? "None"}</div>
+                  <div>Preferred window: {task.preferredTimeWindow ?? "None"}</div>
+                  <div>Estimated effort: {task.estimatedEffort ?? "None"}</div>
+                </div>
+              )}
             </article>
           ))}
         </div>
