@@ -260,18 +260,37 @@ function PlannerPage() {
         <div
           style={{
             marginTop: "24px",
-            minHeight: "220px",
+            minHeight: "260px",
             borderRadius: "24px",
             background: "linear-gradient(135deg, #d9e2ec 0%, #f0f4f8 100%)",
-            display: "grid",
-            placeItems: "center",
+            padding: "28px",
             maxWidth: "900px"
           }}
         >
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontWeight: 700, color: "#102a43" }}>No scheduled blocks yet</div>
-            <div style={{ marginTop: "8px", color: "#627d98" }}>
-              Generate a schedule from the backend first, then it will appear here.
+          <div style={{ maxWidth: "620px" }}>
+            <div style={{ fontWeight: 800, fontSize: "1.3rem", color: "#102a43" }}>No scheduled blocks yet</div>
+            <p style={{ marginTop: "10px", marginBottom: "18px", color: "#486581", lineHeight: 1.7 }}>
+              This week is empty right now. ChronoSync can only generate blocks from tasks you&apos;ve already reviewed and
+              saved.
+            </p>
+
+            <div style={{ display: "grid", gap: "10px", color: "#334e68" }}>
+              <div>1. Go to the Goals page and parse your messy weekly plan.</div>
+              <div>2. Review the parsed tasks and save them.</div>
+              <div>3. Come back here, pick the week you want, and click `Generate Schedule`.</div>
+            </div>
+
+            <div
+              style={{
+                marginTop: "18px",
+                padding: "16px 18px",
+                borderRadius: "16px",
+                background: "rgba(255,255,255,0.78)",
+                color: "#486581"
+              }}
+            >
+              Tip: use `Reset & Regenerate` after editing tasks or changing the selected week, so the planner refreshes from
+              a clean state.
             </div>
           </div>
         </div>
