@@ -14,6 +14,12 @@ function GoalInputPage() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  function updateParsedTask(index: number, updates: Partial<ParsedTask>) {
+    setParsedTasks((currentTasks) =>
+      currentTasks.map((task, taskIndex) => (taskIndex === index ? { ...task, ...updates } : task))
+    );
+  }
+
   async function handleParse() {
     if (!user) {
       setError("You must be signed in to parse tasks.");
@@ -175,10 +181,8 @@ function GoalInputPage() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "start" }}>
                 <div>
-                  <h3 style={{ margin: 0, color: "#102a43" }}>{task.title}</h3>
-                  <p style={{ margin: "8px 0 0", color: "#627d98" }}>
-                    Duration: {task.durationMinutes} min | Priority: {task.priority} | Status: {task.status}
-                  </p>
+                  <h3 style={{ margin: 0, color: "#102a43" }}>Task {index + 1}</h3>
+                  <p style={{ margin: "8px 0 0", color: "#627d98" }}>Review and edit this task before saving it.</p>
                 </div>
                 <span
                   style={{
@@ -194,11 +198,162 @@ function GoalInputPage() {
                 </span>
               </div>
 
-              <div style={{ marginTop: "14px", display: "grid", gap: "8px", color: "#486581" }}>
-                <div>Deadline: {task.deadline ?? "None"}</div>
-                <div>Recurrence: {task.recurrence ?? "None"}</div>
-                <div>Preferred window: {task.preferredTimeWindow ?? "None"}</div>
-                <div>Estimated effort: {task.estimatedEffort ?? "None"}</div>
+              <div
+                style={{
+                  marginTop: "18px",
+                  display: "grid",
+                  gap: "14px",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))"
+                }}
+              >
+                <label style={{ display: "grid", gap: "8px", color: "#486581", fontWeight: 600 }}>
+                  Title
+                  <input
+                    value={task.title}
+                    onChange={(event) => updateParsedTask(index, { title: event.target.value })}
+                    style={{
+                      borderRadius: "12px",
+                      border: "1px solid #cbd2d9",
+                      padding: "10px 12px",
+                      fontSize: "0.95rem"
+                    }}
+                  />
+                </label>
+
+                <label style={{ display: "grid", gap: "8px", color: "#486581", fontWeight: 600 }}>
+                  Duration (min)
+                  <input
+                    type="number"
+                    min={1}
+                    value={task.durationMinutes}
+                    onChange={(event) =>
+                      updateParsedTask(index, { durationMinutes: Number(event.target.value) || task.durationMinutes })
+                    }
+                    style={{
+                      borderRadius: "12px",
+                      border: "1px solid #cbd2d9",
+                      padding: "10px 12px",
+                      fontSize: "0.95rem"
+                    }}
+                  />
+                </label>
+
+                <label style={{ display: "grid", gap: "8px", color: "#486581", fontWeight: 600 }}>
+                  Priority
+                  <select
+                    value={task.priority}
+                    onChange={(event) => updateParsedTask(index, { priority: Number(event.target.value) })}
+                    style={{
+                      borderRadius: "12px",
+                      border: "1px solid #cbd2d9",
+                      padding: "10px 12px",
+                      fontSize: "0.95rem"
+                    }}
+                  >
+                    <option value={1}>1</option>
+                    <option value={2}>2</option>
+                    <option value={3}>3</option>
+                    <option value={4}>4</option>
+                    <option value={5}>5</option>
+                  </select>
+                </label>
+
+                <label style={{ display: "grid", gap: "8px", color: "#486581", fontWeight: 600 }}>
+                  Status
+                  <select
+                    value={task.status}
+                    onChange={(event) => updateParsedTask(index, { status: event.target.value })}
+                    style={{
+                      borderRadius: "12px",
+                      border: "1px solid #cbd2d9",
+                      padding: "10px 12px",
+                      fontSize: "0.95rem"
+                    }}
+                  >
+                    <option value="pending">pending</option>
+                    <option value="in_progress">in_progress</option>
+                    <option value="scheduled">scheduled</option>
+                  </select>
+                </label>
+
+                <label style={{ display: "grid", gap: "8px", color: "#486581", fontWeight: 600 }}>
+                  Deadline
+                  <input
+                    value={task.deadline ?? ""}
+                    onChange={(event) => updateParsedTask(index, { deadline: event.target.value || null })}
+                    placeholder="YYYY-MM-DD or leave blank"
+                    style={{
+                      borderRadius: "12px",
+                      border: "1px solid #cbd2d9",
+                      padding: "10px 12px",
+                      fontSize: "0.95rem"
+                    }}
+                  />
+                </label>
+
+                <label style={{ display: "grid", gap: "8px", color: "#486581", fontWeight: 600 }}>
+                  Recurrence
+                  <input
+                    value={task.recurrence ?? ""}
+                    onChange={(event) => updateParsedTask(index, { recurrence: event.target.value || null })}
+                    placeholder="e.g. 3_times_this_week"
+                    style={{
+                      borderRadius: "12px",
+                      border: "1px solid #cbd2d9",
+                      padding: "10px 12px",
+                      fontSize: "0.95rem"
+                    }}
+                  />
+                </label>
+
+                <label style={{ display: "grid", gap: "8px", color: "#486581", fontWeight: 600 }}>
+                  Preferred window
+                  <input
+                    value={task.preferredTimeWindow ?? ""}
+                    onChange={(event) => updateParsedTask(index, { preferredTimeWindow: event.target.value || null })}
+                    placeholder="morning / afternoon / evening"
+                    style={{
+                      borderRadius: "12px",
+                      border: "1px solid #cbd2d9",
+                      padding: "10px 12px",
+                      fontSize: "0.95rem"
+                    }}
+                  />
+                </label>
+
+                <label style={{ display: "grid", gap: "8px", color: "#486581", fontWeight: 600 }}>
+                  Estimated effort
+                  <input
+                    value={task.estimatedEffort ?? ""}
+                    onChange={(event) => updateParsedTask(index, { estimatedEffort: event.target.value || null })}
+                    placeholder="low / medium / high"
+                    style={{
+                      borderRadius: "12px",
+                      border: "1px solid #cbd2d9",
+                      padding: "10px 12px",
+                      fontSize: "0.95rem"
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div style={{ marginTop: "14px", display: "grid", gap: "8px" }}>
+                <label style={{ display: "grid", gap: "8px", color: "#486581", fontWeight: 600 }}>
+                  Description
+                  <textarea
+                    value={task.description ?? ""}
+                    onChange={(event) => updateParsedTask(index, { description: event.target.value || undefined })}
+                    rows={3}
+                    placeholder="Optional details"
+                    style={{
+                      borderRadius: "12px",
+                      border: "1px solid #cbd2d9",
+                      padding: "10px 12px",
+                      fontSize: "0.95rem",
+                      resize: "vertical"
+                    }}
+                  />
+                </label>
               </div>
             </article>
           ))
