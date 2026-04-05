@@ -122,6 +122,7 @@ async function generateSchedule(input: GenerateScheduleInput) {
 
   const sortedTasks = [...tasks].sort(compareTasks);
   const weekStart = resolveWeekStart(input.weekStart);
+  const weekEnd = getWeekEnd(weekStart);
 
   const schedulerRun = await prisma.schedulerRun.create({
     data: {
@@ -133,9 +134,23 @@ async function generateSchedule(input: GenerateScheduleInput) {
 
   const scheduledTasks = buildSchedule(sortedTasks, weekStart);
 
-  const createdBlocks = await prisma.$transaction(
-    scheduledTasks.map((task) =>
-      prisma.timeBlock.create({
+  const createdBlocks = await prisma.$transaction(async (tx) => {
+    await tx.timeBlock.deleteMany({
+      where: {
+        userId: input.userId,
+        type: "task",
+        status: "scheduled",
+        startTime: {
+          gte: weekStart,
+          lt: weekEnd
+        }
+      }
+    });
+
+    const nextBlocks = [];
+
+    for (const task of scheduledTasks) {
+      const createdBlock = await tx.timeBlock.create({
         data: {
           userId: input.userId,
           taskId: task.taskId,
@@ -146,9 +161,13 @@ async function generateSchedule(input: GenerateScheduleInput) {
           type: "task",
           status: "scheduled"
         }
-      })
-    )
-  );
+      });
+
+      nextBlocks.push(createdBlock);
+    }
+
+    return nextBlocks;
+  });
 
   await prisma.schedulerRun.update({
     where: { id: schedulerRun.id },
