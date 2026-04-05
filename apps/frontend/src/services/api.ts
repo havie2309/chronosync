@@ -37,6 +37,22 @@ type GetTasksResponse = {
   tasks: SavedTask[];
 };
 
+type ScheduleTimeBlock = {
+  id: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  type: string;
+  status: string;
+  taskId?: string | null;
+};
+
+type GetWeekScheduleResponse = {
+  weekStart: string;
+  weekEnd: string;
+  timeBlocks: ScheduleTimeBlock[];
+};
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 async function parseTasks(text: string, user: AuthUser): Promise<ParseTasksResponse> {
@@ -93,5 +109,26 @@ async function getTasks(user: AuthUser): Promise<GetTasksResponse> {
   return (await response.json()) as GetTasksResponse;
 }
 
-export { getTasks, parseTasks, saveTasks };
-export type { GetTasksResponse, ParsedTask, SaveTasksResponse, SavedTask };
+async function getWeekSchedule(user: AuthUser, weekStart?: string): Promise<GetWeekScheduleResponse> {
+  const url = new URL(`${API_URL}/api/schedule/week`);
+
+  if (weekStart) {
+    url.searchParams.set("weekStart", weekStart);
+  }
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: {
+      "x-user-email": user.email
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch weekly schedule");
+  }
+
+  return (await response.json()) as GetWeekScheduleResponse;
+}
+
+export { getTasks, getWeekSchedule, parseTasks, saveTasks };
+export type { GetTasksResponse, GetWeekScheduleResponse, ParsedTask, SaveTasksResponse, SavedTask, ScheduleTimeBlock };
