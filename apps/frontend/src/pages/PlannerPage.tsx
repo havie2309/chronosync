@@ -12,18 +12,26 @@ function formatDateTime(value: string) {
   });
 }
 
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function PlannerPage() {
   const { user } = useAuth();
   const [timeBlocks, setTimeBlocks] = useState<ScheduleTimeBlock[]>([]);
   const [weekStart, setWeekStart] = useState("");
   const [weekEnd, setWeekEnd] = useState("");
+  const [selectedWeekStart, setSelectedWeekStart] = useState(() => toDateInputValue(new Date()));
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  async function loadSchedule(currentUser = user) {
+  async function loadSchedule(currentUser = user, targetWeekStart = selectedWeekStart) {
     if (!currentUser) {
       setError("You must be signed in to view the planner.");
       setIsLoading(false);
@@ -34,7 +42,7 @@ function PlannerPage() {
     setError("");
 
     try {
-      const result = await getWeekSchedule(currentUser);
+      const result = await getWeekSchedule(currentUser, targetWeekStart);
       setTimeBlocks(result.timeBlocks);
       setWeekStart(result.weekStart);
       setWeekEnd(result.weekEnd);
@@ -46,8 +54,8 @@ function PlannerPage() {
   }
 
   useEffect(() => {
-    void loadSchedule();
-  }, [user]);
+    void loadSchedule(user, selectedWeekStart);
+  }, [selectedWeekStart, user]);
 
   async function handleGenerateSchedule() {
     if (!user) {
@@ -60,9 +68,9 @@ function PlannerPage() {
     setSuccessMessage("");
 
     try {
-      const result = await generateSchedule(user);
+      const result = await generateSchedule(user, selectedWeekStart);
       setSuccessMessage(`Generated ${result.timeBlocks.length} time block(s).`);
-      await loadSchedule(user);
+      await loadSchedule(user, selectedWeekStart);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "Failed to generate schedule");
     } finally {
@@ -81,9 +89,9 @@ function PlannerPage() {
     setSuccessMessage("");
 
     try {
-      const result = await resetSchedule(user);
+      const result = await resetSchedule(user, selectedWeekStart);
       setSuccessMessage(`Reset ${result.deletedCount} scheduled block(s) for this week.`);
-      await loadSchedule(user);
+      await loadSchedule(user, selectedWeekStart);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "Failed to reset schedule");
     } finally {
@@ -103,10 +111,10 @@ function PlannerPage() {
     setSuccessMessage("");
 
     try {
-      await resetSchedule(user);
-      const result = await generateSchedule(user);
+      await resetSchedule(user, selectedWeekStart);
+      const result = await generateSchedule(user, selectedWeekStart);
       setSuccessMessage(`Reset and generated ${result.timeBlocks.length} time block(s).`);
-      await loadSchedule(user);
+      await loadSchedule(user, selectedWeekStart);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "Failed to reset and regenerate schedule");
     } finally {
@@ -122,6 +130,23 @@ function PlannerPage() {
       <p style={{ maxWidth: "720px", color: "#627d98", lineHeight: 1.7 }}>
         This page will show scheduled time blocks from the backend and later host drag-and-drop editing with a calendar UI.
       </p>
+
+      <div style={{ marginTop: "18px", maxWidth: "280px" }}>
+        <label style={{ display: "grid", gap: "8px", color: "#486581", fontWeight: 700 }}>
+          Week start
+          <input
+            type="date"
+            value={selectedWeekStart}
+            onChange={(event) => setSelectedWeekStart(event.target.value)}
+            style={{
+              borderRadius: "12px",
+              border: "1px solid #cbd2d9",
+              padding: "10px 12px",
+              fontSize: "0.95rem"
+            }}
+          />
+        </label>
+      </div>
 
       <div style={{ display: "flex", gap: "12px", marginTop: "18px", alignItems: "center" }}>
         <button
@@ -173,7 +198,7 @@ function PlannerPage() {
         </button>
 
         <button
-          onClick={() => void loadSchedule()}
+          onClick={() => void loadSchedule(user, selectedWeekStart)}
           disabled={isLoading || isGenerating || isResetting}
           style={{
             border: "1px solid #bcccdc",
