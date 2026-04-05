@@ -17,6 +17,15 @@ type ParseTasksResponse = {
   parserMode: "mock";
 };
 
+type SaveTasksResponse = {
+  tasks: Array<
+    ParsedTask & {
+      id: string;
+      taskListId: string;
+    }
+  >;
+};
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 async function parseTasks(text: string, user: AuthUser): Promise<ParseTasksResponse> {
@@ -36,5 +45,27 @@ async function parseTasks(text: string, user: AuthUser): Promise<ParseTasksRespo
   return (await response.json()) as ParseTasksResponse;
 }
 
-export { parseTasks };
-export type { ParseTasksResponse, ParsedTask };
+async function saveTasks(tasks: ParsedTask[], user: AuthUser): Promise<SaveTasksResponse> {
+  const sanitizedTasks = tasks.map((task) => ({
+    ...task,
+    deadline: task.deadline && task.deadline.includes("-") ? task.deadline : null
+  }));
+
+  const response = await fetch(`${API_URL}/api/tasks/bulk`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-user-email": user.email
+    },
+    body: JSON.stringify({ tasks: sanitizedTasks })
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to save tasks");
+  }
+
+  return (await response.json()) as SaveTasksResponse;
+}
+
+export { parseTasks, saveTasks };
+export type { ParseTasksResponse, ParsedTask, SaveTasksResponse };

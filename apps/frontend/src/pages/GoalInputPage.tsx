@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { parseTasks, type ParsedTask } from "../services/api";
+import { parseTasks, saveTasks, type ParsedTask } from "../services/api";
 
 const samplePrompt = "study physics 3 times this week, gym on 2 evenings, finish math assignment before Friday";
 
@@ -10,7 +10,9 @@ function GoalInputPage() {
   const [parsedTasks, setParsedTasks] = useState<ParsedTask[]>([]);
   const [parserMode, setParserMode] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   async function handleParse() {
     if (!user) {
@@ -20,6 +22,7 @@ function GoalInputPage() {
 
     setIsLoading(true);
     setError("");
+    setSuccessMessage("");
 
     try {
       const result = await parseTasks(text, user);
@@ -31,6 +34,31 @@ function GoalInputPage() {
       setError(nextError instanceof Error ? nextError.message : "Failed to parse tasks");
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleSaveTasks() {
+    if (!user) {
+      setError("You must be signed in to save tasks.");
+      return;
+    }
+
+    if (parsedTasks.length === 0) {
+      setError("Parse tasks first before saving.");
+      return;
+    }
+
+    setIsSaving(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      const result = await saveTasks(parsedTasks, user);
+      setSuccessMessage(`Saved ${result.tasks.length} task(s) to your account.`);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Failed to save tasks");
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -81,6 +109,22 @@ function GoalInputPage() {
             {isLoading ? "Parsing..." : "Parse Goals"}
           </button>
 
+          <button
+            onClick={handleSaveTasks}
+            disabled={isSaving || parsedTasks.length === 0}
+            style={{
+              border: "1px solid #bcccdc",
+              borderRadius: "12px",
+              padding: "12px 18px",
+              background: isSaving || parsedTasks.length === 0 ? "#f0f4f8" : "#fff",
+              color: "#102a43",
+              fontWeight: 700,
+              cursor: isSaving || parsedTasks.length === 0 ? "default" : "pointer"
+            }}
+          >
+            {isSaving ? "Saving..." : "Save Reviewed Tasks"}
+          </button>
+
           {parserMode ? <span style={{ color: "#627d98" }}>Parser mode: {parserMode}</span> : null}
         </div>
 
@@ -95,6 +139,20 @@ function GoalInputPage() {
             }}
           >
             {error}
+          </div>
+        ) : null}
+
+        {successMessage ? (
+          <div
+            style={{
+              marginTop: "16px",
+              padding: "12px 14px",
+              borderRadius: "12px",
+              background: "#e6fffa",
+              color: "#0f766e"
+            }}
+          >
+            {successMessage}
           </div>
         ) : null}
       </div>
