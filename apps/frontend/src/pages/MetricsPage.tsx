@@ -16,6 +16,14 @@ const cardStyle = {
   boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)"
 } as const;
 
+function getShare(value: number, total: number) {
+  if (total <= 0) {
+    return 0;
+  }
+
+  return Math.round((value / total) * 100);
+}
+
 function formatLastRun(lastSchedulerRunAt: string | null) {
   if (!lastSchedulerRunAt) {
     return "No scheduler run yet";
@@ -25,6 +33,48 @@ function formatLastRun(lastSchedulerRunAt: string | null) {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(lastSchedulerRunAt));
+}
+
+function StatusBar({
+  label,
+  value,
+  percent,
+  color
+}: {
+  label: string;
+  value: number;
+  percent: number;
+  color: string;
+}) {
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", marginBottom: "8px" }}>
+        <span style={{ color: "#486581", fontWeight: 600 }}>{label}</span>
+        <span style={{ color: "#102a43", fontWeight: 700 }}>
+          {value} · {percent}%
+        </span>
+      </div>
+
+      <div
+        style={{
+          height: "12px",
+          borderRadius: "999px",
+          background: "#e6edf3",
+          overflow: "hidden"
+        }}
+      >
+        <div
+          style={{
+            width: `${percent}%`,
+            height: "100%",
+            borderRadius: "999px",
+            background: color,
+            transition: "width 180ms ease"
+          }}
+        />
+      </div>
+    </div>
+  );
 }
 
 function MetricsPage() {
@@ -55,6 +105,14 @@ function MetricsPage() {
 
     void loadMetrics();
   }, [user]);
+
+  const totalTasks = metrics?.tasks.total ?? 0;
+  const pendingShare = metrics ? getShare(metrics.tasks.pending, totalTasks) : 0;
+  const inProgressShare = metrics ? getShare(metrics.tasks.inProgress, totalTasks) : 0;
+  const scheduledShare = metrics ? getShare(metrics.tasks.scheduled, totalTasks) : 0;
+  const totalBlocks = metrics?.schedule.totalTimeBlocks ?? 0;
+  const currentWeekBlocks = metrics?.schedule.currentWeekTimeBlocks ?? 0;
+  const weeklyCoverage = metrics ? getShare(currentWeekBlocks, totalBlocks) : 0;
 
   return (
     <section>
@@ -154,6 +212,64 @@ function MetricsPage() {
               }}
             >
               <strong style={{ color: "#102a43" }}>Last scheduler run:</strong> {formatLastRun(metrics.schedule.lastSchedulerRunAt)}
+            </div>
+          </div>
+
+          <div style={cardGridStyle}>
+            <div style={cardStyle}>
+              <h2 style={{ margin: 0, color: "#102a43", fontSize: "1.4rem" }}>Task status mix</h2>
+              <p style={{ margin: "10px 0 0", color: "#627d98", lineHeight: 1.7 }}>
+                A quick visual breakdown of how your current workload is distributed.
+              </p>
+
+              <div style={{ display: "grid", gap: "18px", marginTop: "22px" }}>
+                <StatusBar label="Pending" value={metrics.tasks.pending} percent={pendingShare} color="#d97706" />
+                <StatusBar label="In progress" value={metrics.tasks.inProgress} percent={inProgressShare} color="#2563eb" />
+                <StatusBar label="Scheduled" value={metrics.tasks.scheduled} percent={scheduledShare} color="#2f855a" />
+              </div>
+            </div>
+
+            <div style={cardStyle}>
+              <h2 style={{ margin: 0, color: "#102a43", fontSize: "1.4rem" }}>Schedule coverage</h2>
+              <p style={{ margin: "10px 0 0", color: "#627d98", lineHeight: 1.7 }}>
+                This compares blocks in the selected current week snapshot against all stored schedule blocks.
+              </p>
+
+              <div
+                style={{
+                  marginTop: "22px",
+                  padding: "18px",
+                  borderRadius: "18px",
+                  background: "linear-gradient(135deg, #eef7f1 0%, #f8fafc 100%)"
+                }}
+              >
+                <div style={{ color: "#486581", fontWeight: 600 }}>Current-week coverage</div>
+                <div style={{ marginTop: "10px", fontSize: "2.5rem", fontWeight: 800, color: "#102a43" }}>
+                  {weeklyCoverage}%
+                </div>
+                <div
+                  style={{
+                    marginTop: "14px",
+                    height: "14px",
+                    borderRadius: "999px",
+                    background: "#d9e2ec",
+                    overflow: "hidden"
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${weeklyCoverage}%`,
+                      height: "100%",
+                      background: "linear-gradient(90deg, #2f855a 0%, #38a169 100%)",
+                      borderRadius: "999px",
+                      transition: "width 180ms ease"
+                    }}
+                  />
+                </div>
+                <div style={{ marginTop: "12px", color: "#627d98" }}>
+                  {currentWeekBlocks} current-week block(s) out of {totalBlocks} total stored block(s).
+                </div>
+              </div>
             </div>
           </div>
         </>
