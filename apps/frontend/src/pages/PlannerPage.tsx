@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { generateSchedule, getWeekSchedule, resetSchedule, type ScheduleTimeBlock } from "../services/api";
 
@@ -317,6 +318,22 @@ function PlannerPage() {
               <div>2. Review the parsed tasks and save them.</div>
               <div>3. Come back here, pick the week you want, and click `Generate Schedule`.</div>
             </div>
+
+            <Link
+              to="/goals"
+              style={{
+                display: "inline-block",
+                marginTop: "18px",
+                padding: "12px 18px",
+                borderRadius: "12px",
+                background: "#102a43",
+                color: "#fff",
+                textDecoration: "none",
+                fontWeight: 700
+              }}
+            >
+              Go To Goals
+            </Link>
 
             <div
               style={{
