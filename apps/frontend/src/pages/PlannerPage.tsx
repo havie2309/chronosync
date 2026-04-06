@@ -19,6 +19,16 @@ function toDateInputValue(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+function getTotalScheduledHours(timeBlocks: ScheduleTimeBlock[]) {
+  const totalMinutes = timeBlocks.reduce((sum, block) => {
+    const start = new Date(block.startTime).getTime();
+    const end = new Date(block.endTime).getTime();
+    return sum + (end - start) / (1000 * 60);
+  }, 0);
+
+  return (totalMinutes / 60).toFixed(1);
+}
+
 function PlannerPage() {
   const { user } = useAuth();
   const [timeBlocks, setTimeBlocks] = useState<ScheduleTimeBlock[]>([]);
@@ -30,6 +40,9 @@ function PlannerPage() {
   const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  const uniqueScheduledTasks = new Set(timeBlocks.map((block) => block.taskId).filter(Boolean)).size;
+  const totalScheduledHours = getTotalScheduledHours(timeBlocks);
 
   async function loadSchedule(currentUser = user, targetWeekStart = selectedWeekStart) {
     if (!currentUser) {
@@ -232,6 +245,31 @@ function PlannerPage() {
           }}
         >
           {successMessage}
+        </div>
+      ) : null}
+
+      {!isLoading && !error ? (
+        <div
+          style={{
+            marginTop: "18px",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "12px",
+            maxWidth: "900px"
+          }}
+        >
+          <div style={{ padding: "18px", borderRadius: "18px", background: "#fff" }}>
+            <div style={{ color: "#627d98", fontSize: "0.9rem" }}>Blocks this week</div>
+            <div style={{ marginTop: "8px", fontSize: "1.8rem", fontWeight: 800, color: "#102a43" }}>{timeBlocks.length}</div>
+          </div>
+          <div style={{ padding: "18px", borderRadius: "18px", background: "#fff" }}>
+            <div style={{ color: "#627d98", fontSize: "0.9rem" }}>Scheduled hours</div>
+            <div style={{ marginTop: "8px", fontSize: "1.8rem", fontWeight: 800, color: "#027a48" }}>{totalScheduledHours}</div>
+          </div>
+          <div style={{ padding: "18px", borderRadius: "18px", background: "#fff" }}>
+            <div style={{ color: "#627d98", fontSize: "0.9rem" }}>Unique tasks planned</div>
+            <div style={{ marginTop: "8px", fontSize: "1.8rem", fontWeight: 800, color: "#b45309" }}>{uniqueScheduledTasks}</div>
+          </div>
         </div>
       ) : null}
 
