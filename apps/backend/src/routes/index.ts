@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authRouter } from "./auth.routes.js";
+import { metricsRouter } from "./metrics.routes.js";
 import { scheduleRouter } from "./schedule.routes.js";
 import { tasksRouter } from "./tasks.routes.js";
 
@@ -13,6 +14,7 @@ router.get("/health", (_req, res) => {
 });
 
 router.use("/auth", authRouter);
+router.use("/metrics", metricsRouter);
 router.use("/tasks", tasksRouter);
 router.use("/schedule", scheduleRouter);
 
