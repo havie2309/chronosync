@@ -13,6 +13,21 @@ function formatDateTime(value: string) {
   });
 }
 
+function formatDayLabel(value: string) {
+  return new Date(value).toLocaleDateString([], {
+    weekday: "long",
+    month: "short",
+    day: "numeric"
+  });
+}
+
+function formatTime(value: string) {
+  return new Date(value).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
 function toDateInputValue(date: Date) {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -42,6 +57,9 @@ function PlannerPage() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  const sortedTimeBlocks = [...timeBlocks].sort(
+    (left, right) => new Date(left.startTime).getTime() - new Date(right.startTime).getTime()
+  );
   const uniqueScheduledTasks = new Set(timeBlocks.map((block) => block.taskId).filter(Boolean)).size;
   const totalScheduledHours = getTotalScheduledHours(timeBlocks);
 
@@ -353,7 +371,7 @@ function PlannerPage() {
 
       {!isLoading && !error && timeBlocks.length > 0 ? (
         <div style={{ marginTop: "24px", display: "grid", gap: "16px", maxWidth: "900px" }}>
-          {timeBlocks.map((block) => (
+          {sortedTimeBlocks.map((block) => (
             <article
               key={block.id}
               style={{
@@ -366,8 +384,9 @@ function PlannerPage() {
               <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "start" }}>
                 <div>
                   <h3 style={{ margin: 0, color: "#102a43" }}>{block.title}</h3>
+                  <div style={{ marginTop: "8px", color: "#486581", fontWeight: 700 }}>{formatDayLabel(block.startTime)}</div>
                   <p style={{ margin: "8px 0 0", color: "#627d98" }}>
-                    {formatDateTime(block.startTime)} {"->"} {formatDateTime(block.endTime)}
+                    {formatTime(block.startTime)} {"->"} {formatTime(block.endTime)}
                   </p>
                 </div>
                 <span
