@@ -73,6 +73,21 @@ type UpdateTaskResponse = {
   task: SavedTask;
 };
 
+type MetricsSummaryResponse = {
+  tasks: {
+    total: number;
+    pending: number;
+    inProgress: number;
+    scheduled: number;
+  };
+  schedule: {
+    totalTimeBlocks: number;
+    currentWeekTimeBlocks: number;
+    schedulerRuns: number;
+    lastSchedulerRunAt: string | null;
+  };
+};
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 async function parseTasks(text: string, user: AuthUser): Promise<ParseTasksResponse> {
@@ -216,10 +231,26 @@ async function updateTask(taskId: string, updates: Partial<ParsedTask>, user: Au
   return (await response.json()) as UpdateTaskResponse;
 }
 
-export { deleteTask, generateSchedule, getTasks, getWeekSchedule, parseTasks, resetSchedule, saveTasks, updateTask };
+async function getMetricsSummary(user: AuthUser): Promise<MetricsSummaryResponse> {
+  const response = await fetch(`${API_URL}/api/metrics/summary`, {
+    method: "GET",
+    headers: {
+      "x-user-email": user.email
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch metrics summary");
+  }
+
+  return (await response.json()) as MetricsSummaryResponse;
+}
+
+export { deleteTask, generateSchedule, getMetricsSummary, getTasks, getWeekSchedule, parseTasks, resetSchedule, saveTasks, updateTask };
 export type {
   DeleteTaskResponse,
   GenerateScheduleResponse,
+  MetricsSummaryResponse,
   GetTasksResponse,
   GetWeekScheduleResponse,
   ParsedTask,

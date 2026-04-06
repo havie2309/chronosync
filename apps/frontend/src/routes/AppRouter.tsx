@@ -3,6 +3,7 @@ import { AppLayout } from "../components/AppLayout";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { GoalInputPage } from "../pages/GoalInputPage";
 import { LoginPage } from "../pages/LoginPage";
+import { MetricsPage } from "../pages/MetricsPage";
 import { PlannerPage } from "../pages/PlannerPage";
 import { TasksPage } from "../pages/TasksPage";
 
@@ -18,6 +19,7 @@ function AppRouter() {
             <Route path="/goals" element={<GoalInputPage />} />
             <Route path="/planner" element={<PlannerPage />} />
             <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/metrics" element={<MetricsPage />} />
           </Route>
         </Route>
 

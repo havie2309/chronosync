@@ -41,6 +41,9 @@ function AppLayout() {
           <NavLink to="/tasks" style={navLinkStyle}>
             Tasks
           </NavLink>
+          <NavLink to="/metrics" style={navLinkStyle}>
+            Metrics
+          </NavLink>
         </nav>
 
         <div style={{ marginTop: "32px", padding: "16px", borderRadius: "16px", background: "#fff" }}>
