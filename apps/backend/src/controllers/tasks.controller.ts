@@ -2,6 +2,18 @@ import type { Request, Response } from "express";
 import { parseGoalsToTasks } from "../services/parse.service.js";
 import { bulkCreateTasks, createTask, deleteTask, getTasksForUser, updateTask, type BaseTaskShape } from "../services/tasks.service.js";
 
+function getSingleParam(value: string | string[] | undefined): string | null {
+  if (typeof value === "string" && value.length > 0) {
+    return value;
+  }
+
+  if (Array.isArray(value) && value.length > 0 && typeof value[0] === "string" && value[0].length > 0) {
+    return value[0];
+  }
+
+  return null;
+}
+
 async function createTaskHandler(req: Request, res: Response) {
   if (!req.user) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -104,9 +116,14 @@ async function updateTaskHandler(req: Request, res: Response) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  const taskId = getSingleParam(req.params.id);
+  if (!taskId) {
+    return res.status(400).json({ error: "Task id is required" });
+  }
+
   const task = await updateTask({
     userId: req.user.id,
-    taskId: req.params.id,
+    taskId,
     ...req.body
   });
 
@@ -122,7 +139,12 @@ async function deleteTaskHandler(req: Request, res: Response) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const result = await deleteTask(req.user.id, req.params.id);
+  const taskId = getSingleParam(req.params.id);
+  if (!taskId) {
+    return res.status(400).json({ error: "Task id is required" });
+  }
+
+  const result = await deleteTask(req.user.id, taskId);
 
   if (!result) {
     return res.status(404).json({ error: "Task not found" });

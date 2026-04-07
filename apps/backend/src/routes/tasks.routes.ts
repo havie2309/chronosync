@@ -8,16 +8,17 @@ import {
   updateTaskHandler
 } from "../controllers/tasks.controller.js";
 import { requireAuth } from "../middleware/requireAuth.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 const tasksRouter = Router();
 
-tasksRouter.use(requireAuth);
+tasksRouter.use(asyncHandler(requireAuth));
 
-tasksRouter.post("/parse", parseTasksHandler);
-tasksRouter.post("/bulk", bulkCreateTasksHandler);
-tasksRouter.post("/", createTaskHandler);
-tasksRouter.get("/", getTasksHandler);
-tasksRouter.patch("/:id", updateTaskHandler);
-tasksRouter.delete("/:id", deleteTaskHandler);
+tasksRouter.post("/parse", asyncHandler(parseTasksHandler));
+tasksRouter.post("/bulk", asyncHandler(bulkCreateTasksHandler));
+tasksRouter.post("/", asyncHandler(createTaskHandler));
+tasksRouter.get("/", asyncHandler(getTasksHandler));
+tasksRouter.patch("/:id", asyncHandler(updateTaskHandler));
+tasksRouter.delete("/:id", asyncHandler(deleteTaskHandler));
 
 export { tasksRouter };
