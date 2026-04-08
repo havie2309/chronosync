@@ -90,21 +90,52 @@ type MetricsSummaryResponse = {
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
-async function parseTasks(text: string, user: AuthUser): Promise<ParseTasksResponse> {
-  const response = await fetch(`${API_URL}/api/tasks/parse`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-user-email": user.email
-    },
-    body: JSON.stringify({ text })
-  });
+type ApiErrorBody = {
+  error?: string;
+  retryAfterSeconds?: number;
+};
 
-  if (!response.ok) {
-    throw new Error("Failed to parse tasks");
+async function requestJson<T>(url: string, init: RequestInit, fallbackMessage: string): Promise<T> {
+  let response: Response;
+
+  try {
+    response = await fetch(url, init);
+  } catch {
+    throw new Error("Could not reach the backend. Make sure the API server is running.");
   }
 
-  return (await response.json()) as ParseTasksResponse;
+  if (!response.ok) {
+    let errorBody: ApiErrorBody | null = null;
+
+    try {
+      errorBody = (await response.json()) as ApiErrorBody;
+    } catch {
+      errorBody = null;
+    }
+
+    if (response.status === 429 && errorBody?.retryAfterSeconds) {
+      throw new Error(`Too many requests. Please try again in ${errorBody.retryAfterSeconds} seconds.`);
+    }
+
+    throw new Error(errorBody?.error ?? fallbackMessage);
+  }
+
+  return (await response.json()) as T;
+}
+
+async function parseTasks(text: string, user: AuthUser): Promise<ParseTasksResponse> {
+  return requestJson<ParseTasksResponse>(
+    `${API_URL}/api/tasks/parse`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-email": user.email
+      },
+      body: JSON.stringify({ text })
+    },
+    "Failed to parse tasks"
+  );
 }
 
 async function saveTasks(tasks: ParsedTask[], user: AuthUser): Promise<SaveTasksResponse> {
@@ -113,35 +144,31 @@ async function saveTasks(tasks: ParsedTask[], user: AuthUser): Promise<SaveTasks
     deadline: task.deadline && task.deadline.includes("-") ? task.deadline : null
   }));
 
-  const response = await fetch(`${API_URL}/api/tasks/bulk`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-user-email": user.email
+  return requestJson<SaveTasksResponse>(
+    `${API_URL}/api/tasks/bulk`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-email": user.email
+      },
+      body: JSON.stringify({ tasks: sanitizedTasks })
     },
-    body: JSON.stringify({ tasks: sanitizedTasks })
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to save tasks");
-  }
-
-  return (await response.json()) as SaveTasksResponse;
+    "Failed to save tasks"
+  );
 }
 
 async function getTasks(user: AuthUser): Promise<GetTasksResponse> {
-  const response = await fetch(`${API_URL}/api/tasks`, {
-    method: "GET",
-    headers: {
-      "x-user-email": user.email
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch tasks");
-  }
-
-  return (await response.json()) as GetTasksResponse;
+  return requestJson<GetTasksResponse>(
+    `${API_URL}/api/tasks`,
+    {
+      method: "GET",
+      headers: {
+        "x-user-email": user.email
+      }
+    },
+    "Failed to fetch tasks"
+  );
 }
 
 async function getWeekSchedule(user: AuthUser, weekStart?: string): Promise<GetWeekScheduleResponse> {
@@ -151,99 +178,87 @@ async function getWeekSchedule(user: AuthUser, weekStart?: string): Promise<GetW
     url.searchParams.set("weekStart", weekStart);
   }
 
-  const response = await fetch(url.toString(), {
-    method: "GET",
-    headers: {
-      "x-user-email": user.email
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch weekly schedule");
-  }
-
-  return (await response.json()) as GetWeekScheduleResponse;
+  return requestJson<GetWeekScheduleResponse>(
+    url.toString(),
+    {
+      method: "GET",
+      headers: {
+        "x-user-email": user.email
+      }
+    },
+    "Failed to fetch weekly schedule"
+  );
 }
 
 async function generateSchedule(user: AuthUser, weekStart?: string): Promise<GenerateScheduleResponse> {
-  const response = await fetch(`${API_URL}/api/schedule/generate`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-user-email": user.email
+  return requestJson<GenerateScheduleResponse>(
+    `${API_URL}/api/schedule/generate`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-email": user.email
+      },
+      body: JSON.stringify(weekStart ? { weekStart } : {})
     },
-    body: JSON.stringify(weekStart ? { weekStart } : {})
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to generate schedule");
-  }
-
-  return (await response.json()) as GenerateScheduleResponse;
+    "Failed to generate schedule"
+  );
 }
 
 async function resetSchedule(user: AuthUser, weekStart?: string): Promise<ResetScheduleResponse> {
-  const response = await fetch(`${API_URL}/api/schedule/reset`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-user-email": user.email
+  return requestJson<ResetScheduleResponse>(
+    `${API_URL}/api/schedule/reset`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-email": user.email
+      },
+      body: JSON.stringify(weekStart ? { weekStart } : {})
     },
-    body: JSON.stringify(weekStart ? { weekStart } : {})
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to reset schedule");
-  }
-
-  return (await response.json()) as ResetScheduleResponse;
+    "Failed to reset schedule"
+  );
 }
 
 async function deleteTask(taskId: string, user: AuthUser): Promise<DeleteTaskResponse> {
-  const response = await fetch(`${API_URL}/api/tasks/${taskId}`, {
-    method: "DELETE",
-    headers: {
-      "x-user-email": user.email
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to delete task");
-  }
-
-  return (await response.json()) as DeleteTaskResponse;
+  return requestJson<DeleteTaskResponse>(
+    `${API_URL}/api/tasks/${taskId}`,
+    {
+      method: "DELETE",
+      headers: {
+        "x-user-email": user.email
+      }
+    },
+    "Failed to delete task"
+  );
 }
 
 async function updateTask(taskId: string, updates: Partial<ParsedTask>, user: AuthUser): Promise<UpdateTaskResponse> {
-  const response = await fetch(`${API_URL}/api/tasks/${taskId}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      "x-user-email": user.email
+  return requestJson<UpdateTaskResponse>(
+    `${API_URL}/api/tasks/${taskId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "x-user-email": user.email
+      },
+      body: JSON.stringify(updates)
     },
-    body: JSON.stringify(updates)
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to update task");
-  }
-
-  return (await response.json()) as UpdateTaskResponse;
+    "Failed to update task"
+  );
 }
 
 async function getMetricsSummary(user: AuthUser): Promise<MetricsSummaryResponse> {
-  const response = await fetch(`${API_URL}/api/metrics/summary`, {
-    method: "GET",
-    headers: {
-      "x-user-email": user.email
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch metrics summary");
-  }
-
-  return (await response.json()) as MetricsSummaryResponse;
+  return requestJson<MetricsSummaryResponse>(
+    `${API_URL}/api/metrics/summary`,
+    {
+      method: "GET",
+      headers: {
+        "x-user-email": user.email
+      }
+    },
+    "Failed to fetch metrics summary"
+  );
 }
 
 export { deleteTask, generateSchedule, getMetricsSummary, getTasks, getWeekSchedule, parseTasks, resetSchedule, saveTasks, updateTask };
