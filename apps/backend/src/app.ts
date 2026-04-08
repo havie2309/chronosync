@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import { env } from "./config/env.js";
+import { requestLogger } from "./middleware/requestLogger.js";
 import { router } from "./routes/index.js";
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use(requestLogger);
 
 app.use("/api", router);
 
