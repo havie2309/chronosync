@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getMetricsSummary, type MetricsSummaryResponse } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { getMetricsSummary, type MetricsSummaryResponse } from "../services/api";
 
 const cardGridStyle = {
   display: "grid",
@@ -51,7 +51,7 @@ function StatusBar({
       <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", marginBottom: "8px" }}>
         <span style={{ color: "#486581", fontWeight: 600 }}>{label}</span>
         <span style={{ color: "#102a43", fontWeight: 700 }}>
-          {value} · {percent}%
+          {value} - {percent}%
         </span>
       </div>
 
@@ -82,27 +82,29 @@ function MetricsPage() {
   const [metrics, setMetrics] = useState<MetricsSummaryResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
 
-  useEffect(() => {
-    async function loadMetrics() {
-      if (!user) {
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await getMetricsSummary(user);
-        setMetrics(response);
-      } catch (loadError) {
-        const message = loadError instanceof Error ? loadError.message : "Failed to load metrics";
-        setError(message);
-      } finally {
-        setIsLoading(false);
-      }
+  async function loadMetrics() {
+    if (!user) {
+      return;
     }
 
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await getMetricsSummary(user);
+      setMetrics(response);
+      setLastUpdatedAt(new Date());
+    } catch (loadError) {
+      const message = loadError instanceof Error ? loadError.message : "Failed to load metrics";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
     void loadMetrics();
   }, [user]);
 
@@ -113,18 +115,44 @@ function MetricsPage() {
   const totalBlocks = metrics?.schedule.totalTimeBlocks ?? 0;
   const currentWeekBlocks = metrics?.schedule.currentWeekTimeBlocks ?? 0;
   const weeklyCoverage = metrics ? getShare(currentWeekBlocks, totalBlocks) : 0;
+  const lastUpdatedLabel = lastUpdatedAt
+    ? new Intl.DateTimeFormat(undefined, { timeStyle: "medium" }).format(lastUpdatedAt)
+    : "Not loaded yet";
 
   return (
     <section>
-      <div>
-        <div style={{ color: "#486581", fontWeight: 700, fontSize: "1.05rem" }}>Metrics</div>
-        <h1 style={{ margin: "14px 0 0", fontSize: "3.4rem", lineHeight: 1.05, color: "#102a43" }}>
-          System overview
-        </h1>
-        <p style={{ margin: "18px 0 0", maxWidth: "900px", color: "#627d98", fontSize: "1.1rem", lineHeight: 1.8 }}>
-          This page surfaces the backend summary metrics so you can quickly see how much work has been captured,
-          scheduled, and processed through the planner.
-        </p>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "24px", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ color: "#486581", fontWeight: 700, fontSize: "1.05rem" }}>Metrics</div>
+          <h1 style={{ margin: "14px 0 0", fontSize: "3.4rem", lineHeight: 1.05, color: "#102a43" }}>
+            System overview
+          </h1>
+          <p style={{ margin: "18px 0 0", maxWidth: "900px", color: "#627d98", fontSize: "1.1rem", lineHeight: 1.8 }}>
+            This page surfaces the backend summary metrics so you can quickly see how much work has been captured,
+            scheduled, and processed through the planner.
+          </p>
+        </div>
+
+        <div style={{ minWidth: "190px", textAlign: "right" }}>
+          <button
+            onClick={() => void loadMetrics()}
+            disabled={isLoading}
+            style={{
+              border: "none",
+              borderRadius: "14px",
+              padding: "12px 18px",
+              background: isLoading ? "#9fb3c8" : "#102a43",
+              color: "#fff",
+              fontWeight: 800,
+              cursor: isLoading ? "not-allowed" : "pointer"
+            }}
+          >
+            {isLoading ? "Refreshing..." : "Refresh Metrics"}
+          </button>
+          <div style={{ marginTop: "10px", color: "#627d98", fontSize: "0.9rem" }}>
+            Last updated: {lastUpdatedLabel}
+          </div>
+        </div>
       </div>
 
       {isLoading ? (
