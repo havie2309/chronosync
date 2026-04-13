@@ -88,6 +88,15 @@ type MetricsSummaryResponse = {
   };
 };
 
+type HealthDetailsResponse = {
+  ok: boolean;
+  service: string;
+  checks: {
+    api: "ok" | "error";
+    database: "ok" | "error";
+  };
+};
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 type ApiErrorBody = {
@@ -261,10 +270,32 @@ async function getMetricsSummary(user: AuthUser): Promise<MetricsSummaryResponse
   );
 }
 
-export { deleteTask, generateSchedule, getMetricsSummary, getTasks, getWeekSchedule, parseTasks, resetSchedule, saveTasks, updateTask };
+async function getHealthDetails(): Promise<HealthDetailsResponse> {
+  return requestJson<HealthDetailsResponse>(
+    `${API_URL}/api/health/details`,
+    {
+      method: "GET"
+    },
+    "Failed to fetch health details"
+  );
+}
+
+export {
+  deleteTask,
+  generateSchedule,
+  getHealthDetails,
+  getMetricsSummary,
+  getTasks,
+  getWeekSchedule,
+  parseTasks,
+  resetSchedule,
+  saveTasks,
+  updateTask
+};
 export type {
   DeleteTaskResponse,
   GenerateScheduleResponse,
+  HealthDetailsResponse,
   MetricsSummaryResponse,
   GetTasksResponse,
   GetWeekScheduleResponse,

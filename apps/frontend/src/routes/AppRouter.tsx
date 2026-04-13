@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 import { GoalInputPage } from "../pages/GoalInputPage";
+import { HealthPage } from "../pages/HealthPage";
 import { LoginPage } from "../pages/LoginPage";
 import { MetricsPage } from "../pages/MetricsPage";
 import { PlannerPage } from "../pages/PlannerPage";
@@ -20,6 +21,7 @@ function AppRouter() {
             <Route path="/planner" element={<PlannerPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/metrics" element={<MetricsPage />} />
+            <Route path="/health" element={<HealthPage />} />
           </Route>
         </Route>
 
