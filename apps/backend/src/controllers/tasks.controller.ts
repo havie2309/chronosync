@@ -1,6 +1,13 @@
 import type { Request, Response } from "express";
 import { parseGoalsToTasks } from "../services/parse.service.js";
-import { bulkCreateTasks, createTask, deleteTask, getTasksForUser, updateTask, type BaseTaskShape } from "../services/tasks.service.js";
+import { bulkCreateTasks, createTask, deleteTask, getTasksForUser, updateTask } from "../services/tasks.service.js";
+import {
+  bulkCreateTasksBodySchema,
+  createTaskBodySchema,
+  formatZodError,
+  parseTasksBodySchema,
+  updateTaskBodySchema
+} from "../validation/requestSchemas.js";
 
 function getSingleParam(value: string | string[] | undefined): string | null {
   if (typeof value === "string" && value.length > 0) {
@@ -19,45 +26,18 @@ async function createTaskHandler(req: Request, res: Response) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const {
-    title,
-    description,
-    durationMinutes,
-    priority,
-    deadline,
-    recurrence,
-    preferredTimeWindow,
-    estimatedEffort,
-    status
-  } = req.body as {
-    title?: string;
-    description?: string;
-    durationMinutes?: number;
-    priority?: number;
-    deadline?: string;
-    recurrence?: string;
-    preferredTimeWindow?: string;
-    estimatedEffort?: string;
-    status?: string;
-  };
+  const parsedBody = createTaskBodySchema.safeParse(req.body);
 
-  if (!title || !durationMinutes) {
+  if (!parsedBody.success) {
     return res.status(400).json({
-      error: "title and durationMinutes are required"
+      error: "Invalid request body",
+      details: formatZodError(parsedBody.error)
     });
   }
 
   const task = await createTask({
     userId: req.user.id,
-    title,
-    description,
-    durationMinutes,
-    priority,
-    deadline,
-    recurrence,
-    preferredTimeWindow,
-    estimatedEffort,
-    status
+    ...parsedBody.data
   });
 
   return res.status(201).json({ task });
@@ -68,17 +48,18 @@ async function bulkCreateTasksHandler(req: Request, res: Response) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { tasks } = req.body as { tasks?: BaseTaskShape[] };
+  const parsedBody = bulkCreateTasksBodySchema.safeParse(req.body);
 
-  if (!Array.isArray(tasks) || tasks.length === 0) {
+  if (!parsedBody.success) {
     return res.status(400).json({
-      error: "tasks must be a non-empty array"
+      error: "Invalid request body",
+      details: formatZodError(parsedBody.error)
     });
   }
 
   const createdTasks = await bulkCreateTasks({
     userId: req.user.id,
-    tasks
+    tasks: parsedBody.data.tasks
   });
 
   return res.status(201).json({ tasks: createdTasks });
@@ -89,15 +70,16 @@ async function parseTasksHandler(req: Request, res: Response) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { text } = req.body as { text?: string };
+  const parsedBody = parseTasksBodySchema.safeParse(req.body);
 
-  if (!text) {
+  if (!parsedBody.success) {
     return res.status(400).json({
-      error: "text is required"
+      error: "Invalid request body",
+      details: formatZodError(parsedBody.error)
     });
   }
 
-  const result = await parseGoalsToTasks({ text });
+  const result = await parseGoalsToTasks({ text: parsedBody.data.text });
 
   return res.status(200).json(result);
 }
@@ -121,10 +103,19 @@ async function updateTaskHandler(req: Request, res: Response) {
     return res.status(400).json({ error: "Task id is required" });
   }
 
+  const parsedBody = updateTaskBodySchema.safeParse(req.body);
+
+  if (!parsedBody.success) {
+    return res.status(400).json({
+      error: "Invalid request body",
+      details: formatZodError(parsedBody.error)
+    });
+  }
+
   const task = await updateTask({
     userId: req.user.id,
     taskId,
-    ...req.body
+    ...parsedBody.data
   });
 
   if (!task) {
