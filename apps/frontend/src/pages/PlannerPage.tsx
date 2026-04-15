@@ -1,49 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { formatDate, formatDayLabel, formatTime, getTotalScheduledHours, sortScheduleBlocks, toDateInputValue } from "../lib/date";
 import { generateSchedule, getWeekSchedule, resetSchedule, type ScheduleTimeBlock } from "../services/api";
-
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString([], {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit"
-  });
-}
-
-function formatDayLabel(value: string) {
-  return new Date(value).toLocaleDateString([], {
-    weekday: "long",
-    month: "short",
-    day: "numeric"
-  });
-}
-
-function formatTime(value: string) {
-  return new Date(value).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit"
-  });
-}
-
-function toDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function getTotalScheduledHours(timeBlocks: ScheduleTimeBlock[]) {
-  const totalMinutes = timeBlocks.reduce((sum, block) => {
-    const start = new Date(block.startTime).getTime();
-    const end = new Date(block.endTime).getTime();
-    return sum + (end - start) / (1000 * 60);
-  }, 0);
-
-  return (totalMinutes / 60).toFixed(1);
-}
 
 function PlannerPage() {
   const { user } = useAuth();
@@ -57,9 +16,7 @@ function PlannerPage() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  const sortedTimeBlocks = [...timeBlocks].sort(
-    (left, right) => new Date(left.startTime).getTime() - new Date(right.startTime).getTime()
-  );
+  const sortedTimeBlocks = sortScheduleBlocks(timeBlocks);
   const uniqueScheduledTasks = new Set(timeBlocks.map((block) => block.taskId).filter(Boolean)).size;
   const totalScheduledHours = getTotalScheduledHours(timeBlocks);
 
@@ -248,7 +205,7 @@ function PlannerPage() {
 
       {weekStart && weekEnd ? (
         <p style={{ marginTop: "18px", color: "#627d98" }}>
-          Showing schedule from {new Date(weekStart).toLocaleDateString()} to {new Date(weekEnd).toLocaleDateString()}
+          Showing schedule from {formatDate(weekStart)} to {formatDate(weekEnd)}
         </p>
       ) : null}
 
