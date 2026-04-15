@@ -1,6 +1,9 @@
 import { prisma } from "../lib/prisma.js";
+import { getWeekEnd, resolveWeekStart } from "../utils/date.js";
 
 async function getMetricsSummary(userId: string) {
+  const currentWeekStart = resolveWeekStart();
+  const currentWeekEnd = getWeekEnd(currentWeekStart);
   const [taskCount, pendingTaskCount, inProgressTaskCount, scheduledTaskCount, totalTimeBlockCount, weekTimeBlockCount, schedulerRunCount, lastSchedulerRun] =
     await Promise.all([
       prisma.task.count({
@@ -43,8 +46,8 @@ async function getMetricsSummary(userId: string) {
         where: {
           userId,
           startTime: {
-            gte: startOfCurrentWeek(),
-            lt: endOfCurrentWeek()
+            gte: currentWeekStart,
+            lt: currentWeekEnd
           }
         }
       }),
@@ -77,18 +80,6 @@ async function getMetricsSummary(userId: string) {
       lastSchedulerRunAt: lastSchedulerRun?.startedAt ?? null
     }
   };
-}
-
-function startOfCurrentWeek() {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  return now;
-}
-
-function endOfCurrentWeek() {
-  const end = startOfCurrentWeek();
-  end.setDate(end.getDate() + 7);
-  return end;
 }
 
 export { getMetricsSummary };

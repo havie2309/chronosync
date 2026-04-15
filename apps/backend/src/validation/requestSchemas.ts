@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isDateOnlyString, isValidDateString } from "../utils/date.js";
 
 const optionalTextSchema = z.preprocess(
   (value) => (value === "" ? undefined : value),
@@ -15,7 +16,7 @@ const nullableDateSchema = z.preprocess(
   z
     .string()
     .trim()
-    .refine((value) => !Number.isNaN(new Date(value).getTime()), "Must be a valid date string")
+    .refine(isValidDateString, "Must be a valid date string")
     .nullable()
     .optional()
 );
@@ -58,7 +59,7 @@ const scheduleBodySchema = z.object({
   weekStart: z
     .string()
     .trim()
-    .refine((value) => !Number.isNaN(new Date(value).getTime()), "weekStart must be a valid date")
+    .refine(isDateOnlyString, "weekStart must use YYYY-MM-DD format")
     .optional()
 });
 

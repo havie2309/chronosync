@@ -22,8 +22,8 @@ function makeTask(overrides: Partial<{
   };
 }
 
-test("resolveWeekStart returns the start of the provided day", () => {
-  const weekStart = resolveWeekStart("2026-04-13T15:45:00.000Z");
+test("resolveWeekStart returns the start of the provided date-only day", () => {
+  const weekStart = resolveWeekStart("2026-04-13");
 
   assert.equal(weekStart.getHours(), 0);
   assert.equal(weekStart.getMinutes(), 0);

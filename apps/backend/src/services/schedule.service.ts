@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma.js";
+import { addDays, getWeekEnd, resolveWeekStart } from "../utils/date.js";
 
 type GenerateScheduleInput = {
   userId: string;
@@ -22,29 +23,6 @@ type ScheduledTask = {
   endTime: Date;
 };
 
-function startOfDay(date: Date) {
-  const result = new Date(date);
-  result.setHours(0, 0, 0, 0);
-  return result;
-}
-
-function resolveWeekStart(weekStart?: string) {
-  if (weekStart) {
-    const parsed = new Date(weekStart);
-    if (!Number.isNaN(parsed.getTime())) {
-      return startOfDay(parsed);
-    }
-  }
-
-  return startOfDay(new Date());
-}
-
-function getWeekEnd(weekStart: Date) {
-  const result = new Date(weekStart);
-  result.setDate(result.getDate() + 7);
-  return result;
-}
-
 function getDayWindow(baseDate: Date) {
   const start = new Date(baseDate);
   start.setHours(9, 0, 0, 0);
@@ -53,12 +31,6 @@ function getDayWindow(baseDate: Date) {
   end.setHours(21, 0, 0, 0);
 
   return { start, end };
-}
-
-function addDays(date: Date, days: number) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
 }
 
 function compareTasks(a: { deadline: Date | null; priority: number; createdAt: Date }, b: { deadline: Date | null; priority: number; createdAt: Date }) {

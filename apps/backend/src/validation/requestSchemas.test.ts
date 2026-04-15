@@ -132,6 +132,22 @@ test("scheduleBodySchema rejects invalid weekStart values", () => {
   assert.equal(result.success, false);
 });
 
+test("scheduleBodySchema accepts date-only weekStart values", () => {
+  const result = scheduleBodySchema.safeParse({
+    weekStart: "2026-04-13"
+  });
+
+  assert.equal(result.success, true);
+});
+
+test("scheduleBodySchema rejects datetime weekStart values", () => {
+  const result = scheduleBodySchema.safeParse({
+    weekStart: "2026-04-13T10:00:00.000Z"
+  });
+
+  assert.equal(result.success, false);
+});
+
 test("formatZodError returns compact path and message details", () => {
   const result = createTaskBodySchema.safeParse({
     title: "",
