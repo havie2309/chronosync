@@ -1,3 +1,6 @@
+import interactionPlugin from "@fullcalendar/interaction";
+import FullCalendar from "@fullcalendar/react";
+import timeGridPlugin from "@fullcalendar/timegrid";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -17,6 +20,19 @@ function PlannerPage() {
   const [successMessage, setSuccessMessage] = useState("");
 
   const sortedTimeBlocks = sortScheduleBlocks(timeBlocks);
+  const calendarEvents = sortedTimeBlocks.map((block) => ({
+    id: block.id,
+    title: block.title,
+    start: block.startTime,
+    end: block.endTime,
+    backgroundColor: "#102a43",
+    borderColor: "#102a43",
+    textColor: "#fff",
+    extendedProps: {
+      status: block.status,
+      taskId: block.taskId
+    }
+  }));
   const uniqueScheduledTasks = new Set(timeBlocks.map((block) => block.taskId).filter(Boolean)).size;
   const totalScheduledHours = getTotalScheduledHours(timeBlocks);
 
@@ -327,41 +343,77 @@ function PlannerPage() {
       ) : null}
 
       {!isLoading && !error && timeBlocks.length > 0 ? (
-        <div style={{ marginTop: "24px", display: "grid", gap: "16px", maxWidth: "900px" }}>
-          {sortedTimeBlocks.map((block) => (
-            <article
-              key={block.id}
-              style={{
-                padding: "20px",
-                borderRadius: "18px",
-                background: "#fff",
-                boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)"
+        <>
+          <div
+            style={{
+              marginTop: "24px",
+              maxWidth: "1100px",
+              borderRadius: "24px",
+              background: "#fff",
+              padding: "18px",
+              boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)"
+            }}
+          >
+            <FullCalendar
+              key={selectedWeekStart}
+              plugins={[timeGridPlugin, interactionPlugin]}
+              initialView="timeGridWeek"
+              initialDate={selectedWeekStart}
+              events={calendarEvents}
+              headerToolbar={{
+                left: "title",
+                center: "",
+                right: ""
               }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "start" }}>
-                <div>
-                  <h3 style={{ margin: 0, color: "#102a43" }}>{block.title}</h3>
-                  <div style={{ marginTop: "8px", color: "#486581", fontWeight: 700 }}>{formatDayLabel(block.startTime)}</div>
-                  <p style={{ margin: "8px 0 0", color: "#627d98" }}>
-                    {formatTime(block.startTime)} {"->"} {formatTime(block.endTime)}
-                  </p>
+              allDaySlot={false}
+              nowIndicator
+              height="auto"
+              slotMinTime="06:00:00"
+              slotMaxTime="22:00:00"
+              eventTimeFormat={{
+                hour: "numeric",
+                minute: "2-digit",
+                meridiem: "short"
+              }}
+            />
+          </div>
+
+          <div style={{ marginTop: "24px", display: "grid", gap: "16px", maxWidth: "900px" }}>
+            {sortedTimeBlocks.map((block) => (
+              <article
+                key={block.id}
+                style={{
+                  padding: "20px",
+                  borderRadius: "18px",
+                  background: "#fff",
+                  boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)"
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "start" }}>
+                  <div>
+                    <h3 style={{ margin: 0, color: "#102a43" }}>{block.title}</h3>
+                    <div style={{ marginTop: "8px", color: "#486581", fontWeight: 700 }}>{formatDayLabel(block.startTime)}</div>
+                    <p style={{ margin: "8px 0 0", color: "#627d98" }}>
+                      {formatTime(block.startTime)} {"->"} {formatTime(block.endTime)}
+                    </p>
+                  </div>
+                  <span
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: "999px",
+                      background: "#ecfdf3",
+                      color: "#027a48",
+                      fontSize: "0.85rem",
+                      fontWeight: 700
+                    }}
+                  >
+                    {block.status}
+                  </span>
                 </div>
-                <span
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: "999px",
-                    background: "#ecfdf3",
-                    color: "#027a48",
-                    fontSize: "0.85rem",
-                    fontWeight: 700
-                  }}
-                >
-                  {block.status}
-                </span>
-              </div>
-            </article>
-          ))}
-        </div>
+              </article>
+            ))}
+          </div>
+        </>
       ) : null}
     </section>
   );
