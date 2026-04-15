@@ -10,6 +10,68 @@ Current local MVP supports:
 - weekly schedule generation/reset
 - planner, tasks, metrics, and health pages
 
+## Feature Walkthrough
+
+### 1. Demo Login
+
+ChronoSync currently uses a temporary demo sign-in flow so the full product loop can be developed before Firebase Auth is connected.
+
+### 2. Natural-Language Goals
+
+The Goals page accepts messy planning text such as:
+
+```text
+study physics 3 times this week, gym on 2 evenings, finish math assignment before Friday
+```
+
+The backend mock parser converts this into structured task suggestions. Users can review and edit parsed fields before saving them.
+
+### 3. Task Management
+
+The Tasks page shows saved tasks with:
+- summary counts
+- status filters
+- inline editing
+- delete actions
+- visual status badges
+
+### 4. Weekly Planner
+
+The Planner page can:
+- pick a week
+- generate a deterministic schedule
+- reset a week
+- reset and regenerate
+- show schedule summary cards
+- render scheduled blocks in a clean agenda view
+
+### 5. Metrics Dashboard
+
+The Metrics page shows task and schedule visibility:
+- total tasks
+- pending / in-progress / scheduled tasks
+- total time blocks
+- current-week blocks
+- scheduler run count
+- simple status and schedule coverage visuals
+
+### 6. Health Check
+
+The Health page calls the backend details endpoint and verifies:
+- API availability
+- PostgreSQL connectivity through Prisma
+
+## Technical Highlights
+
+- React + Vite frontend with protected routes and shared app shell
+- Express backend with route/controller/service separation
+- PostgreSQL persistence through Prisma
+- Zod request validation for API safety
+- deterministic scheduler with backend tests
+- request logging and rate limiting
+- metrics and DB-aware health endpoints
+- GitHub Actions CI for backend tests/build and frontend build
+
 ## Monorepo Structure
 
 - `apps/frontend` - React frontend
