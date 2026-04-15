@@ -325,5 +325,13 @@ async function resetSchedule(input: ResetScheduleInput) {
   });
 }
 
-export { generateSchedule, getWeekSchedule, resetSchedule };
+const scheduleTestUtils = {
+  buildSchedule,
+  compareTasks,
+  getDayWindow,
+  getWeekEnd,
+  resolveWeekStart
+};
+
+export { generateSchedule, getWeekSchedule, resetSchedule, scheduleTestUtils };
 export type { GenerateScheduleInput, GetWeekScheduleInput, ResetScheduleInput };
